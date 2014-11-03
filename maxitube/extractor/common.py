@@ -4,7 +4,10 @@ from youtube_dl.extractor.common import SearchInfoExtractor
 
 class HomepageSearchExtractor(SearchInfoExtractor):
     """
-    Instances should define _get(self) & _get_n_results(self, query, n):
+    Instances should define:
+     - _get_homepage_results
+     - _get_n_results:
+     - _get_icon_url
     """
     def __init__(self):
         ydl = YoutubeDL()
@@ -19,3 +22,6 @@ class HomepageSearchExtractor(SearchInfoExtractor):
         """Lists  homepage content
         """
         raise RuntimeError('Not implemented')
+
+    def _get_icon_url(self):
+        return r'https://pbs.twimg.com/profile_images/501746918968406018/E9niujVF.jpeg'

@@ -10,3 +10,6 @@ class LePetitJournalHSE(HomepageSearchExtractor):
 
         download_list_html = re.findall('<a href="([^"]+vid=[0-9]+)"', webpage)
         return download_list_html
+
+    def _get_icon_url(self):
+        raise RuntimeError('should override _get_icon_url')

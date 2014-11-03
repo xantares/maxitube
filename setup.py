@@ -81,13 +81,12 @@ setup(
     description='YouTube video downloader',
     long_description='Small command-line program to download videos from'
     ' YouTube.com and other video sites.',
-    url='https://github.com/rg3/youtube-dl',
+    url='https://github.com/xantares/maxitube',
     author='Ricardo Garcia',
     author_email='ytdl@yt-dl.org',
-    maintainer='Philipp Hagemeister',
-    maintainer_email='phihag@phihag.de',
-    packages=[
-        'youtube_rs', 'maxitube'],
+    maintainer='xantares',
+    maintainer_email='xantares09@hotmail.com',
+    packages=['maxitube'],
 
     # Provokes warning on most systems (why?!)
     # test_suite = 'nose.collector',
@@ -98,10 +97,8 @@ setup(
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "License :: Public Domain",
-        "Programming Language :: Python :: 2.6",
-        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.3"
     ],
 
     **params
