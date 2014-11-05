@@ -10,8 +10,9 @@ class HomepageSearchExtractor(SearchInfoExtractor):
      - _get_icon_url
     """
     def __init__(self):
-        ydl = YoutubeDL()
-        self.set_downloader(ydl)
+        pass
+        #ydl = YoutubeDL()
+        #self.set_downloader(ydl)
 
     def _get_n_results(self, query, n):
         """Search

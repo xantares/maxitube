@@ -4,7 +4,13 @@ import sys
 # Import the core and GUI elements of Qt
 from PySide.QtCore import *
 from PySide.QtGui import *
+
+#from PyQt4.QtCore import *
+#from PyQt4.QtGui import *
+from youtube_dl import YoutubeDL
 import extractor
+#from urllib.request import urlretrieve
+import urllib
 
 def main(argv=None):
 
@@ -20,10 +26,49 @@ def main(argv=None):
     searchLayout.addWidget(searchBar)
 
     mainWidget.setLayout(searchLayout)
-    enginesTab = QTabWidget()
-    searchLayout.addWidget(enginesTab)
-    mainWidget.show()
+    table = QTableWidget(10,2)
+    extractors = extractor.gen_extractors()
+    i = 0
+    ydl = YoutubeDL()
+    for ext in extractors:
+        ext.set_downloader(ydl)
+        res = ext._get_homepage_results()
+        for vid in res:
+            infos = ydl.extract_info(vid, download=False)
+                #def extract_info(self, url, download=True, ie_key=None, extra_info={},
+                     #process=True):
+            print(infos)
+            if 'title' in infos:
+                item = QTableWidgetItem(infos['title'])
+                table.setItem(i, 0, item)
+            
+            if 'thumbnail' in infos:
+                filename, headers = urllib.request.urlretrieve(infos['thumbnail'])
+                pixmap = QPixmap(filename)
+                label = QLabel()
+                label.setPixmap(pixmap)
+                table.setCellWidget(i,1,label)
+                #item = QTableWidgetItem(infos['thumbnail'])
+                #table.setItem(i, 1, item)
+                
+                
+            if i >= 10:
+                break
+            i += 1
 
+            #table.setRowCount(i)
+
+            item = QTableWidgetItem('XXX'+vid)
+            table.setItem(i, 0, item)
+            print (table.item(i,0))
+            #table.item(i,0).setText('EEEE')
+            print (i, vid)
+
+
+    searchLayout.addWidget(table)
+    
+    mainWidget.show()
+    
     #qt_app.setMainWidget(mainWidget)
     # Run the application's event loop
     qt_app.exec_()
