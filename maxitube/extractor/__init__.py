@@ -1,3 +1,5 @@
+
+from .goldenmoustache import GoldenMoustacheHSE
 from .lepetitjournal import LePetitJournalHSE
 
 _ALL_CLASSES = [
