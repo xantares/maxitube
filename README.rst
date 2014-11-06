@@ -5,7 +5,7 @@ A GUI to browse/search videos
 
 Supported sites
 ---------------
-  - Le petit journal
+  - Le petit journal (http://www.canalplus.fr/c-divertissement/pid6378-c-le-petit-journal.html)
 
 Dependencies
 ------------
