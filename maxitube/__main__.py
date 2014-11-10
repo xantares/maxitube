@@ -110,7 +110,7 @@ class PlaylistItemDelegate(QItemDelegate):
             image = QImage(int(self.ratio_*self.size_), self.size_, QImage.Format_Mono)
 
         painter.drawImage(option.rect.topLeft(), image)
-        
+
         if key in self.infos_cache_:
             #print(self.infos_cache_[key])
             if 'title' in self.infos_cache_[key]:
@@ -134,14 +134,20 @@ class PlaylistItemDelegate(QItemDelegate):
 
 
 class PlaylistModel(QAbstractListModel):
-    def __init__(self, extractor_key='all', query=None):
+
+
+    def __init__(self):
         super(PlaylistModel, self).__init__()
-        self.extractor_key_ = extractor_key
-        self.query_ = query
         self.downloader_ = YoutubeDL()
         self.extractors_ = extractor.gen_extractors()
         for ext in self.extractors_:
             ext.set_downloader(self.downloader_)
+        self.vids_=[]
+
+    def update(self, extractor_key='all', query=None):
+        print('update q=', query, 'ext=', extractor_key)
+        self.extractor_key_ = extractor_key
+        self.query_ = query
         if self.extractor_key_ == 'all':
             current_extractors = self.extractors_
         else:
@@ -151,7 +157,12 @@ class PlaylistModel(QAbstractListModel):
             if not self.query_:
                 self.vids_.extend(ext._get_homepage_results())
             else:
-                raise ValueError('todo')
+                try:
+                    self.vids_.extend(ext._get_n_results(self.query_, 10))
+                except:
+                    print('not supported')
+                    raise ()
+        self.modelReset.emit()
 
     def rowCount(self, parent):
         return len(self.vids_)
@@ -169,27 +180,41 @@ class PlaylistView(QListView):
 
 
 class MainWindow(QMainWindow):
+
+    @Slot()
+    def updateSearch(self):
+        query = self.searchBar_.text()
+        self.playlist_.update(query=query)
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.resize(1024, 768)
         extractors = extractor.gen_extractors()
         ydl = YoutubeDL()
-        playlist = PlaylistModel()
-
+        self.playlist_ = PlaylistModel()
+        self.playlist_.update()
         mainWidget = QTabWidget()
         searchWidget = QWidget()
         searchLayout = QVBoxLayout()
-        searchBar = QLineEdit()
-        searchLayout.addWidget(searchBar)
+        barLayout = QHBoxLayout()
+        self.searchBar_ = QLineEdit()
+        barLayout.addWidget(self.searchBar_)
+        okButton = QPushButton('Ok')
+        barLayout.addWidget(okButton)
+        barLayout.addStretch()
+        okButton.clicked.connect(self.updateSearch)
+        searchLayout.addLayout(barLayout)
         #playlistView = PlaylistView()
         #playlistView.setModel(playlist)
         #searchLayout.addWidget(playlistView)
+        searchView = PlaylistView()
+        searchView.setModel(self.playlist_)
+        searchLayout.addWidget(searchView)
         searchLayout.addStretch()
-
         searchWidget.setLayout(searchLayout)
 
         browseView = PlaylistView()
-        browseView.setModel(playlist)
+        browseView.setModel(self.playlist_)
         browseLayout = QVBoxLayout()
 
         browseLayout.addWidget(browseView)
