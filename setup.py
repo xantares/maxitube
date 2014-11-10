@@ -78,12 +78,12 @@ else:
 setup(
     name='maxitube',
     #version=__version__,
-    description='YouTube video downloader',
-    long_description='Small command-line program to download videos from'
+    description='YouTube video GUI',
+    long_description='Small GUI to download videos from'
     ' YouTube.com and other video sites.',
     url='https://github.com/xantares/maxitube',
-    author='Ricardo Garcia',
-    author_email='ytdl@yt-dl.org',
+    author='Michel Zou',
+    author_email='xantares09@hotmail.com',
     maintainer='xantares',
     maintainer_email='xantares09@hotmail.com',
     packages=['maxitube'],
@@ -94,10 +94,9 @@ setup(
 
     classifiers=[
         "Topic :: Multimedia :: Video",
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Console",
-        "License :: Public Domain",
-        "Programming Language :: Python :: 2",
+        "Development Status :: 2 - Pre-Alpha",
+        "Environment :: X11 Applications :: Qt",
+        "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
         "Programming Language :: Python :: 3",
     ],
 

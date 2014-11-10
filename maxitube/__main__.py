@@ -97,14 +97,8 @@ class PlaylistItemDelegate(QItemDelegate):
     def paint(self, painter, option, index):
         key = index.data()
         self.fetchVid.emit(key)
-        #if not key in self.infos_cache_:
-            #ydl = YoutubeDL()
-            #self.infos_cache_[key] = ydl.extract_info(key, download=False)
+
         if key in self.image_cache_:
-            #if 'thumbnail' in self.infos_cache_[key]:
-            #if key in self.image_cache_:
-                #filename, headers = urllib.request.urlretrieve(self.infos_cache_[key]['thumbnail'])
-                #self.image_cache_[key] = QImage(filename).scaledToHeight(self.size_)
             image = self.image_cache_[key]
         else:
             image = QImage(int(self.ratio_*self.size_), self.size_, QImage.Format_Mono)
@@ -119,8 +113,6 @@ class PlaylistItemDelegate(QItemDelegate):
                 painter.drawText(option.rect.topLeft().x()+int(128+self.size_), option.rect.topLeft().y()+16, text)
             if 'upload_date' in self.infos_cache_[key]:
                 upload_date = self.infos_cache_[key]['upload_date']
-                #upload_date = str(dateutil.parser.parse(upload_date)).split(' ')
-                print(upload_date)
                 painter.drawText(option.rect.topLeft().x()+int(128+self.size_), option.rect.topLeft().y()+32, upload_date)
 
     def sizeHint(self, option, index):
