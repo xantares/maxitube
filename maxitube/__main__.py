@@ -50,7 +50,7 @@ class DownloadManager(QStandardItemModel):
         self.queue_ = []
         self.simulateous_downloads_ = 1
         self.download_location_ = tempfile.gettempdir()+'/maxitube'
-        self.downloader_.params['outtmpl'] = self.download_location_+'/%(title)s.%(ext)s'
+        self.downloader_.params['outtmpl'] = self.download_location_+'/%(autonumber)s'
         self.downloader_.params['noprogress'] = False
 
     @Slot(str)
@@ -70,8 +70,7 @@ class DownloadManager(QStandardItemModel):
             vid = self.queue_.pop()
             print('-- downloading:',vid)
             infos = self.downloader_.extract_info(vid)
-            title = infos['title']
-            filename = self.download_location_ + '/' + title.replace('/','_') + '.flv'
+            filename = self.download_location_ + '/' + ('%05d' % self.downloader_._num_downloads)
             cmd_line = subprocess.list2cmdline(['vlc', '--fullscreen', filename])
             print('-- run player:', cmd_line)
             p = subprocess.Popen(['vlc', '--fullscreen', filename])
@@ -86,7 +85,7 @@ class ThumbnailCache(object):
 
     def __call__(self, image_url):
         if not image_url in self.cache_:
-          
+
             try:
                 filename, headers = urllib.request.urlretrieve(image_url)
                 srcImage = QImage(filename)
@@ -249,6 +248,8 @@ class PlaylistModel(QAbstractListModel):
                 if future.exception() is not None:
                     print('%s generated an exception: %s' % (url,
                                                             future.exception()))
+
+
         vid = self.vids_[index.row()]
         return vid
 
