@@ -59,9 +59,10 @@ class DownloadManager(QStandardItemModel):
             infos = self.downloader_.extract_info(vid)
             title = infos['title']
             filename = self.download_location_ + '/' + title.replace('/','_') + '.flv'
-            cmd_line = subprocess.list2cmdline(['vlc', filename])
-            print('-- cmd_line:',cmd_line)
-            os.system(cmd_line.encode())
+            cmd_line = subprocess.list2cmdline(['vlc', '--fullscreen', filename])
+            print('-- run player:', cmd_line)
+            p = subprocess.Popen(['vlc', '--fullscreen', filename])
+
 
 class ThumbnailCache(object):
     def __init__(self, height, ratio):
@@ -146,7 +147,7 @@ class PlaylistModel(QAbstractListModel):
         self.vids_=[]
 
     def update(self, extractor_key='all', query=None):
-        print('update q=', query, 'ext=', extractor_key)
+        print('-- update query=', query, 'extractor_key=', extractor_key)
         self.extractor_key_ = extractor_key
         self.query_ = query
         if self.extractor_key_ == 'all':
