@@ -55,72 +55,81 @@ class DownloadManager(QStandardItemModel):
         if len(self.queue_) > 0:
             self.downloader_.add_progress_hook(self.progress)
             vid = self.queue_.pop()
-            print('DownloadManager.update', vid)
-
+            print('-- downloading:',vid)
             infos = self.downloader_.extract_info(vid)
             title = infos['title']
             filename = self.download_location_ + '/' + title.replace('/','_') + '.flv'
             cmd_line = subprocess.list2cmdline(['vlc', filename])
-            print('cmd_line=',cmd_line)
+            print('-- cmd_line:',cmd_line)
             os.system(cmd_line.encode())
 
+class ThumbnailCache(object):
+    def __init__(self, height, ratio):
+        super(ThumbnailCache, self).__init__()
+        self.cache_ = {}
+        self.height_ = height
+        self.ratio_ = ratio
+
+    def __call__(self, image_url):
+        if not image_url in self.cache_:
+            filename, headers = urllib.request.urlretrieve(image_url)
+            srcImage = QImage(filename)
+
+            # column images
+            if srcImage.height() > 4*srcImage.width():
+                srcImage = srcImage.copy(0, 0, srcImage.width(), int(srcImage.width()/self.ratio_))
+
+            # black borders
+            ratio = 1.0*srcImage.width()/srcImage.height()
+            if ratio > self.ratio_:
+                srcImage = srcImage.scaledToWidth(self.height_/self.ratio_)
+                destPos = QPoint(0, (self.height_-srcImage.height())//2)
+            else:
+                srcImage = srcImage.scaledToHeight(self.height_)
+                destPos = QPoint(int(self.ratio_*self.height_-srcImage.width())//2, 0)
+            destImage = QImage(self.ratio_*self.height_, self.height_, srcImage.format())
+            painter = QPainter(destImage)
+            painter.fillRect(painter.window (), QColor('black'))
+            painter.drawImage(destPos, srcImage)
+            painter.end()
+
+            self.cache_[image_url] = destImage
+        return self.cache_[image_url]
 
 class PlaylistItemDelegate(QItemDelegate):
     queueVid = Signal(str)
-    fetchVid = Signal(str)
 
     def __init__(self):
         super(PlaylistItemDelegate, self).__init__()
-        self.size_ = 128
-        self.ratio_ = 114./64
-        self.infos_cache_ = {}
-        self.image_cache_ = {}
+        self.height_ = 128
+        self.ratio_ = 16./9.
+        self.image_cache_ = ThumbnailCache(self.height_, self.ratio_)
         dlm = DownloadManagerFactory().GetInstance()
         self.queueVid.connect(dlm.add)
-        self.fetchVid.connect(self.fetch)
-
-    @Slot(str)
-    def fetch(self, key):
-        if not key in self.infos_cache_:
-            ydl = YoutubeDL()
-            self.infos_cache_[key] = ydl.extract_info(key, download=False)
-
-        if 'thumbnail' in self.infos_cache_[key] and not key in self.image_cache_:
-            thumbnail = self.infos_cache_[key]['thumbnail']
-            filename, headers = urllib.request.urlretrieve(thumbnail)
-            image = QImage(filename)
-            if image.height() > image.width():
-                image = image.copy(0, 0, image.width(), int(image.width()/self.ratio_))
-            image = image.scaledToHeight(self.size_)
-            self.image_cache_[key] = image
 
     def paint(self, painter, option, index):
-        key = index.data()
-        self.fetchVid.emit(key)
+        infos = index.data()
 
-        if key in self.image_cache_:
-            image = self.image_cache_[key]
-        else:
-            image = QImage(int(self.ratio_*self.size_), self.size_, QImage.Format_Mono)
+        if 'thumbnail' in infos:
+            image_url = infos['thumbnail']
+            image = self.image_cache_(image_url)
+            painter.drawImage(option.rect.topLeft(), image)
 
-        painter.drawImage(option.rect.topLeft(), image)
+        if 'title' in infos:
+            title = infos['title']
+            painter.drawText(option.rect.topLeft().x()+int(128+self.height_), option.rect.topLeft().y()+16, title)
 
-        if key in self.infos_cache_:
-            #print(self.infos_cache_[key])
-            if 'title' in self.infos_cache_[key]:
-                title = self.infos_cache_[key]['title']
-                text = title
-                painter.drawText(option.rect.topLeft().x()+int(128+self.size_), option.rect.topLeft().y()+16, text)
-            if 'upload_date' in self.infos_cache_[key]:
-                upload_date = self.infos_cache_[key]['upload_date']
-                painter.drawText(option.rect.topLeft().x()+int(128+self.size_), option.rect.topLeft().y()+32, upload_date)
+        if 'upload_date' in infos:
+            upload_date = infos['upload_date']
+            painter.drawText(option.rect.topLeft().x()+int(128+self.height_), option.rect.topLeft().y()+32, upload_date)
 
     def sizeHint(self, option, index):
-        return QSize(int(2*self.ratio_*self.size_), self.size_)
+        return QSize(int(2*self.ratio_*self.height_), self.height_)
 
     def editorEvent(self, event, model, option, index):
         if (event.type() == QEvent.MouseButtonPress):
-            self.queueVid.emit(index.data())
+            url = index.data()['url']
+            self.queueVid.emit(url)
             return True
         return False
 
