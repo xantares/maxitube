@@ -150,6 +150,27 @@ class PlaylistItemDelegate(QItemDelegate):
         return False
 
 
+class CacheWorker(QObject):
+    finished = Signal()
+
+    def __init__(self, model):
+        super(CacheWorker, self).__init__() 
+        self.model_ = model
+
+    @Slot()
+    def doWork(self):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_url = dict((executor.submit(self.model_.populateCache, i), i)
+                                for i in range(len(self.model_.vids_)))
+
+            for future in concurrent.futures.as_completed(future_to_url):
+                i = future_to_url[future]
+                url = self.model_.vids_[i]['thumbnail']
+                if future.exception() is not None:
+                    print('%s generated an exception: %s' % (url,
+                                                            future.exception()))
+        self.finished.emit()
+
 class PlaylistModel(QAbstractListModel):
 
 
@@ -218,16 +239,24 @@ class PlaylistModel(QAbstractListModel):
                 query = qp.parse(search_text)
                 results = searcher.search(query, limit=100)
                 print('--', results)
-                self.vids_ = []
-                for result in results:
-                    print('--', result)
-                    self.vids_.append(result['vid'])
+                if len(results)>0:
+                    self.vids_ = []
+                    for result in results:
+                        print('--', result)
+                        self.vids_.append(result['vid'])
 
+        self.worker_ = CacheWorker(self)
+        self.workerThread_ = QThread()
+        self.worker_.moveToThread(self.workerThread_)
+        self.workerThread_.started.connect(self.worker_.doWork)
+        self.worker_.finished.connect(self.workerThread_.quit)
+        self.workerThread_.finished.connect(self.worker_.deleteLater)
+        self.workerThread_.finished.connect(self.workerThread_.deleteLater)
+        self.workerThread_.start()
         self.modelReset.emit()
 
     def rowCount(self, parent):
         return len(self.vids_)
-
 
     def populateCache(self, index):
         vid = self.vids_[index]
@@ -235,21 +264,7 @@ class PlaylistModel(QAbstractListModel):
             vid['qimage'] = self.image_cache_(vid['thumbnail'])
 
     def data(self, index, role):
-        #for i in range(index.row(), min(len(self.vids_), index.row()+20)):
-            #self.populateCache(i)
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            future_to_url = dict((executor.submit(self.populateCache, i), i)
-                                for i in range(index.row(), min(len(self.vids_), index.row()+10)))
-
-            for future in concurrent.futures.as_completed(future_to_url):
-                i = future_to_url[future]
-                url = self.vids_[i]['thumbnail']
-                if future.exception() is not None:
-                    print('%s generated an exception: %s' % (url,
-                                                            future.exception()))
-
-
+        self.populateCache(index.row())
         vid = self.vids_[index.row()]
         return vid
 
