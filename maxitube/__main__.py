@@ -2,11 +2,13 @@
 # Allow access to command-line arguments
 import sys
 # Import the core and GUI elements of Qt
+
 from PySide.QtCore import *
 from PySide.QtGui import *
 
-#from PyQt4.QtCore import *
-#from PyQt4.QtGui import *
+    #from PyQt4.QtCore import *
+    #from PyQt4.QtGui import *
+
 from youtube_dl import YoutubeDL
 import extractor
 #from urllib.request import urlretrieve
@@ -16,6 +18,14 @@ import subprocess
 import os
 import dateutil.parser
 import signal
+
+try:
+    from whoosh.fields import Schema, TEXT, ID, STORED
+    from whoosh.index import create_in
+    from whoosh.qparser import QueryParser
+    whoosh_available = True
+except:
+    whoosh_available = False
 
 
 class DownloadManagerFactory:
@@ -147,9 +157,9 @@ class PlaylistModel(QAbstractListModel):
             ext.set_downloader(self.downloader_)
         self.vids_=[]
 
-    def update(self, extractor_name=None, query=None):
-        print('-- update query=', query, 'extractor_name=', extractor_name)
-        self.query_ = query
+    def update(self, extractor_name=None, search_text=None):
+        print('-- update search_text=', search_text, 'extractor_name=', extractor_name)
+        self.search_text_ = search_text
         current_extractors = self.extractors_
         if extractor_name:
             for ext in current_extractors:
@@ -158,14 +168,33 @@ class PlaylistModel(QAbstractListModel):
                     break
         self.vids_ = []
         for ext in current_extractors:
-            if not self.query_:
+            if not self.search_text_:
                 self.vids_.extend(ext._get_homepage_results())
             else:
                 try:
-                    self.vids_.extend(ext._get_n_results(self.query_, 10))
+                    self.vids_.extend(ext._get_n_results(self.search_text_, 10))
                 except:
                     print('-- search not implemented for', ext.IE_NAME)
                     pass
+        if search_text and whoosh_available:
+            schema = Schema(title=TEXT(stored=True), vid=STORED)
+            if not os.path.exists("index"):
+                os.mkdir("index")
+            ix = create_in("index", schema)
+            writer = ix.writer()
+            for vid in self.vids_:
+                writer.add_document(title=vid['title'], vid=vid)
+            writer.commit()
+
+            with ix.searcher() as searcher:
+                qp = QueryParser('title', schema=ix.schema)
+                query = qp.parse(search_text)
+                results = searcher.search(query, limit=100)
+                print(results)
+                self.vids_ = []
+                for result in results:
+                    self.vids_.append(result['vid'])
+
         self.modelReset.emit()
 
     def rowCount(self, parent):
@@ -217,10 +246,10 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def onSearch(self):
-        query = self.searchBar_.text()
+        search_text = self.searchBar_.text()
         index = self.siteBar_.currentIndex()
         extractor_name = self.siteBar_.itemData(index)
-        self.playlist_.update(query=query, extractor_name=extractor_name)
+        self.playlist_.update(search_text=search_text, extractor_name=extractor_name)
 
     @Slot(str)
     def onBrowse(self, extractor_name):
