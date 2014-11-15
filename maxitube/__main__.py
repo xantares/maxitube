@@ -18,6 +18,8 @@ import subprocess
 import os
 import dateutil.parser
 import signal
+import concurrent.futures
+from urllib.error import HTTPError
 
 try:
     from whoosh.fields import Schema, TEXT, ID, STORED
@@ -76,7 +78,7 @@ class DownloadManager(QStandardItemModel):
 
 
 class ThumbnailCache(object):
-    def __init__(self, height, ratio):
+    def __init__(self, height=96, ratio=16./9):
         super(ThumbnailCache, self).__init__()
         self.cache_ = {}
         self.height_ = height
@@ -84,8 +86,13 @@ class ThumbnailCache(object):
 
     def __call__(self, image_url):
         if not image_url in self.cache_:
-            filename, headers = urllib.request.urlretrieve(image_url)
-            srcImage = QImage(filename)
+          
+            try:
+                filename, headers = urllib.request.urlretrieve(image_url)
+                srcImage = QImage(filename)
+            except:
+                srcImage = QImage(self.ratio_*self.height_, self.height_, QImage.Format.Format_RGB32)
+                srcImage.fill(QColor('black'))
 
             # column images
             if srcImage.height() > 4*srcImage.width():
@@ -111,20 +118,18 @@ class ThumbnailCache(object):
 class PlaylistItemDelegate(QItemDelegate):
     queueVid = Signal(str)
 
-    def __init__(self):
+    def __init__(self, height=96, ratio=16./9):
         super(PlaylistItemDelegate, self).__init__()
-        self.height_ = 96
-        self.ratio_ = 16./9.
-        self.image_cache_ = ThumbnailCache(self.height_, self.ratio_)
+        self.height_ = height
+        self.ratio_ = ratio
         dlm = DownloadManagerFactory().GetInstance()
         self.queueVid.connect(dlm.add)
 
     def paint(self, painter, option, index):
         infos = index.data()
 
-        if 'thumbnail' in infos:
-            image_url = infos['thumbnail']
-            image = self.image_cache_(image_url)
+        if 'qimage' in infos:
+            image = infos['qimage']
             painter.drawImage(option.rect.topLeft(), image)
 
         if 'title' in infos:
@@ -155,11 +160,17 @@ class PlaylistModel(QAbstractListModel):
         self.extractors_ = extractor.gen_extractors()
         for ext in self.extractors_:
             ext.set_downloader(self.downloader_)
-        self.vids_=[]
+        self.vids_ = []
+        self.image_cache_ = ThumbnailCache()
+
+    def run_extractor(self, ext, search_text):
+        if not search_text:
+            return ext._get_homepage_results()
+        else:
+            return ext._get_n_results(search_text, 10)
 
     def update(self, extractor_name=None, search_text=None):
         print('-- update search_text=', search_text, 'extractor_name=', extractor_name)
-        self.search_text_ = search_text
         current_extractors = self.extractors_
         if extractor_name:
             for ext in current_extractors:
@@ -167,15 +178,30 @@ class PlaylistModel(QAbstractListModel):
                     current_extractors = [ext]
                     break
         self.vids_ = []
-        for ext in current_extractors:
-            if not self.search_text_:
-                self.vids_.extend(ext._get_homepage_results())
-            else:
-                try:
-                    self.vids_.extend(ext._get_n_results(self.search_text_, 10))
-                except:
-                    print('-- search not implemented for', ext.IE_NAME)
-                    pass
+        #for ext in current_extractors:
+            #try:
+                #vids = self.run_extractor(ext,search_text)
+                #self.vids_.extend(vids)
+            #except:
+                #print('-- extraction failed for', ext.IE_NAME)
+                #pass
+
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_url = dict((executor.submit(self.run_extractor, ext, search_text), ext)
+                                for ext in current_extractors)
+
+            for future in concurrent.futures.as_completed(future_to_url):
+                ext = future_to_url[future]
+                if future.exception() is not None:
+                    print('%s generated an exception: %s' % (ext.IE_NAME,
+                                                            future.exception()))
+                else:
+                    vids = future.result()
+                    print(ext.IE_NAME, 'returned ', len(vids))
+                    #vids = future.result()
+                    self.vids_.extend(vids)
+
 
         print('--', len(self.vids_), 'preliminary results')
         if search_text and len(self.vids_)>100 and whoosh_available:
@@ -203,8 +229,28 @@ class PlaylistModel(QAbstractListModel):
     def rowCount(self, parent):
         return len(self.vids_)
 
+
+    def populateCache(self, index):
+        vid = self.vids_[index]
+        if not 'qimage' in vid:
+            vid['qimage'] = self.image_cache_(vid['thumbnail'])
+
     def data(self, index, role):
-        return self.vids_[index.row()]
+        #for i in range(index.row(), min(len(self.vids_), index.row()+20)):
+            #self.populateCache(i)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_url = dict((executor.submit(self.populateCache, i), i)
+                                for i in range(index.row(), min(len(self.vids_), index.row()+10)))
+
+            for future in concurrent.futures.as_completed(future_to_url):
+                i = future_to_url[future]
+                url = self.vids_[i]['thumbnail']
+                if future.exception() is not None:
+                    print('%s generated an exception: %s' % (url,
+                                                            future.exception()))
+        vid = self.vids_[index.row()]
+        return vid
 
 class PlaylistView(QListView):
     def __init__(self):
