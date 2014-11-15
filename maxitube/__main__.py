@@ -84,7 +84,7 @@ class ThumbnailCache(object):
             # black borders
             ratio = 1.0*srcImage.width()/srcImage.height()
             if ratio > self.ratio_:
-                srcImage = srcImage.scaledToWidth(self.height_/self.ratio_)
+                srcImage = srcImage.scaledToWidth(self.height_*self.ratio_)
                 destPos = QPoint(0, (self.height_-srcImage.height())//2)
             else:
                 srcImage = srcImage.scaledToHeight(self.height_)
