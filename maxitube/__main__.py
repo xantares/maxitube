@@ -47,7 +47,7 @@ class DownloadManager(QStandardItemModel):
         self.downloader_.add_progress_hook(self.progress)
         self.queue_ = []
         self.simulateous_downloads_ = 1
-        self.download_location_ = tempfile.gettempdir()
+        self.download_location_ = tempfile.gettempdir()+'/maxitube'
         self.downloader_.params['outtmpl'] = self.download_location_+'/%(title)s.%(ext)s'
         self.downloader_.params['noprogress'] = False
 
@@ -176,7 +176,9 @@ class PlaylistModel(QAbstractListModel):
                 except:
                     print('-- search not implemented for', ext.IE_NAME)
                     pass
-        if search_text and whoosh_available:
+
+        print('--', len(self.vids_), 'preliminary results')
+        if search_text and len(self.vids_)>100 and whoosh_available:
             schema = Schema(title=TEXT(stored=True), vid=STORED)
             if not os.path.exists("index"):
                 os.mkdir("index")
@@ -190,9 +192,10 @@ class PlaylistModel(QAbstractListModel):
                 qp = QueryParser('title', schema=ix.schema)
                 query = qp.parse(search_text)
                 results = searcher.search(query, limit=100)
-                print(results)
+                print('--', results)
                 self.vids_ = []
                 for result in results:
+                    print('--', result)
                     self.vids_.append(result['vid'])
 
         self.modelReset.emit()
