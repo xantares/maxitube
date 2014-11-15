@@ -40,6 +40,16 @@ class DownloadManagerFactory:
     def GetInstance(self):
         return self.__class__.instance_
 
+class DownloadWorker(QObject):
+    finished = Signal()
+    def __init__(self, manager):
+        super(DownloadWorker, self).__init__()
+        self.manager_ = manager
+
+    def doWork(self):
+        self.manager_.update()
+        self.finished.emit()
+
 class DownloadManager(QStandardItemModel):
     def __init__(self):
         super(DownloadManager, self).__init__()
@@ -59,7 +69,16 @@ class DownloadManager(QStandardItemModel):
             self.queue_.append(vid)
             item = QStandardItem(vid)
             self.appendRow(item)
-            self.update()
+
+            self.worker_ = DownloadWorker(self)
+            self.workerThread_ = QThread()
+            self.worker_.moveToThread(self.workerThread_)
+            self.workerThread_.started.connect(self.worker_.doWork)
+            self.worker_.finished.connect(self.workerThread_.quit)
+            self.workerThread_.finished.connect(self.worker_.deleteLater)
+            self.workerThread_.finished.connect(self.workerThread_.deleteLater)
+            self.workerThread_.start()
+            #self.update()
 
     def progress(self, percent):
         print(percent)
