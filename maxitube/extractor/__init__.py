@@ -1,10 +1,10 @@
-from .goldenmoustache import GoldenMoustacheHSE
-from .lepetitjournal import LePetitJournalHSE
+from .goldenmoustache import GoldenMoustacheSE
+from .lepetitjournal import LePetitJournalSE
 
 _ALL_CLASSES = [
     klass
     for name, klass in globals().items()
-    if name.endswith('HSE') and name != 'GenericIE'
+    if name.endswith('SE') and name != 'GenericIE'
 ]
 #_ALL_CLASSES.append(GenericIE)
 

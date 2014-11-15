@@ -2,7 +2,7 @@ from .common import HomepageSearchExtractor
 import re
 
 
-class LePetitJournalHSE(HomepageSearchExtractor):
+class LePetitJournalSE(HomepageSearchExtractor):
 
     def _get_homepage_results(self, n=10):
 

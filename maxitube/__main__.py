@@ -15,6 +15,7 @@ import tempfile
 import subprocess
 import os
 import dateutil.parser
+import signal
 
 
 class DownloadManagerFactory:
@@ -102,7 +103,7 @@ class PlaylistItemDelegate(QItemDelegate):
 
     def __init__(self):
         super(PlaylistItemDelegate, self).__init__()
-        self.height_ = 128
+        self.height_ = 96
         self.ratio_ = 16./9.
         self.image_cache_ = ThumbnailCache(self.height_, self.ratio_)
         dlm = DownloadManagerFactory().GetInstance()
@@ -146,12 +147,15 @@ class PlaylistModel(QAbstractListModel):
             ext.set_downloader(self.downloader_)
         self.vids_=[]
 
-    def update(self, extractor_key='all', query=None):
-        print('-- update query=', query, 'extractor_key=', extractor_key)
-        self.extractor_key_ = extractor_key
+    def update(self, extractor_name=None, query=None):
+        print('-- update query=', query, 'extractor_name=', extractor_name)
         self.query_ = query
-        if self.extractor_key_ == 'all':
-            current_extractors = self.extractors_
+        current_extractors = self.extractors_
+        if extractor_name:
+            for ext in current_extractors:
+                if ext.IE_NAME == extractor_name:
+                    current_extractors = [ext]
+                    break
         else:
             raise ValueError('todo')
         self.vids_=[]
@@ -181,12 +185,46 @@ class PlaylistView(QListView):
         return QSize(256,800)
 
 
+class SiteTable(QTableWidget):
+    requestBrowse = Signal(str)
+
+    def __init__(self, extractors):
+        super(SiteTable, self).__init__()
+        self.setRowCount(len(extractors))
+        self.setColumnCount(1)
+        row = 0
+        cache = ThumbnailCache(64, 1.)
+        for extractor in extractors:
+            item = QTableWidgetItem()
+            icon_url = extractor._get_icon_url()
+            image = cache(icon_url)
+            icon = QIcon(QPixmap.fromImage(image))
+            item.setIcon(icon)
+            item.setText(extractor.IE_NAME)
+            self.setItem (row, 0, item)
+            row += 1
+        #connect(self, SIGNAL(cellClicked(int,int)), this, SLOT(previousWeek()));
+        self.cellClicked.connect(self.onCellClick) 
+
+    @Slot(int, int)
+    def onCellClick(self, row, col):
+        extractor_name = self.item(row, col).text()
+        self.requestBrowse.emit(extractor_name)
+
+    def sizeHint(self):
+        return QSize(256,800)
+
+
 class MainWindow(QMainWindow):
 
     @Slot()
-    def updateSearch(self):
+    def onSearch(self):
         query = self.searchBar_.text()
         self.playlist_.update(query=query)
+
+    @Slot(str)
+    def onBrowse(self, extractor_name):
+        self.playlist_.update(extractor_name)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -194,8 +232,7 @@ class MainWindow(QMainWindow):
         extractors = extractor.gen_extractors()
         ydl = YoutubeDL()
         self.playlist_ = PlaylistModel()
-        self.playlist_.update()
-        mainWidget = QTabWidget()
+        panelWidget = QTabWidget()
         searchWidget = QWidget()
         searchLayout = QVBoxLayout()
         barLayout = QHBoxLayout()
@@ -204,33 +241,37 @@ class MainWindow(QMainWindow):
         okButton = QPushButton('Ok')
         barLayout.addWidget(okButton)
         barLayout.addStretch()
-        okButton.clicked.connect(self.updateSearch)
+        okButton.clicked.connect(self.onSearch)
         searchLayout.addLayout(barLayout)
         #playlistView = PlaylistView()
         #playlistView.setModel(playlist)
         #searchLayout.addWidget(playlistView)
-        searchView = PlaylistView()
-        searchView.setModel(self.playlist_)
-        searchLayout.addWidget(searchView)
         searchLayout.addStretch()
         searchWidget.setLayout(searchLayout)
 
-        browseView = PlaylistView()
-        browseView.setModel(self.playlist_)
         browseLayout = QVBoxLayout()
 
-        browseLayout.addWidget(browseView)
-        browseWidget = QWidget()
+        browseLayout.addStretch()
+        browseWidget = SiteTable(extractors)
+        browseWidget.requestBrowse.connect(self.onBrowse)
         browseWidget.setLayout(browseLayout)
-        mainWidget.addTab(browseWidget, 'Browse') 
-        mainWidget.addTab(searchWidget, 'Search')
+        panelWidget.addTab(browseWidget, 'Browse') 
+        panelWidget.addTab(searchWidget, 'Search')
 
-        mainWidget
+        mainLayout = QHBoxLayout()
+        mainLayout.addWidget(panelWidget)
+        searchView = PlaylistView()
+        searchView.setModel(self.playlist_)
+        mainLayout.addWidget(searchView)
+        mainWidget = QWidget()
+        mainWidget.setLayout(mainLayout)
         self.setCentralWidget(mainWidget)
 
 
 def main(argv=None):
 
+
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     # Every Qt application must have one and only one QApplication object;
     # it receives the command line arguments passed to the script, as they
     # can be used to customize the application's appearance and behavior
