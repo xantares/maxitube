@@ -156,9 +156,7 @@ class PlaylistModel(QAbstractListModel):
                 if ext.IE_NAME == extractor_name:
                     current_extractors = [ext]
                     break
-        else:
-            raise ValueError('todo')
-        self.vids_=[]
+        self.vids_ = []
         for ext in current_extractors:
             if not self.query_:
                 self.vids_.extend(ext._get_homepage_results())
@@ -166,8 +164,8 @@ class PlaylistModel(QAbstractListModel):
                 try:
                     self.vids_.extend(ext._get_n_results(self.query_, 10))
                 except:
-                    print('not supported')
-                    raise ()
+                    print('-- search not implemented for', ext.IE_NAME)
+                    pass
         self.modelReset.emit()
 
     def rowCount(self, parent):
@@ -220,7 +218,9 @@ class MainWindow(QMainWindow):
     @Slot()
     def onSearch(self):
         query = self.searchBar_.text()
-        self.playlist_.update(query=query)
+        index = self.siteBar_.currentIndex()
+        extractor_name = self.siteBar_.itemData(index)
+        self.playlist_.update(query=query, extractor_name=extractor_name)
 
     @Slot(str)
     def onBrowse(self, extractor_name):
@@ -235,6 +235,15 @@ class MainWindow(QMainWindow):
         panelWidget = QTabWidget()
         searchWidget = QWidget()
         searchLayout = QVBoxLayout()
+        siteLayout = QHBoxLayout()
+        self.siteBar_ = QComboBox()
+        siteLayout.addWidget(QLabel('site:'))
+        siteLayout.addWidget(self.siteBar_)
+        self.siteBar_.addItem('All', None)
+        for ext in extractors:
+            self.siteBar_.addItem(ext.IE_NAME, ext.IE_NAME)
+        siteLayout.addStretch()
+        searchLayout.addLayout(siteLayout)
         barLayout = QHBoxLayout()
         self.searchBar_ = QLineEdit()
         barLayout.addWidget(self.searchBar_)
@@ -243,9 +252,6 @@ class MainWindow(QMainWindow):
         barLayout.addStretch()
         okButton.clicked.connect(self.onSearch)
         searchLayout.addLayout(barLayout)
-        #playlistView = PlaylistView()
-        #playlistView.setModel(playlist)
-        #searchLayout.addWidget(playlistView)
         searchLayout.addStretch()
         searchWidget.setLayout(searchLayout)
 
