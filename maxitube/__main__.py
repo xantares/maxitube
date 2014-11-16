@@ -96,12 +96,12 @@ class DownloadManager(QStandardItemModel):
 
 
 class ThumbnailCache(object):
-    def __init__(self, height=96, ratio=16./9):
+    def __init__(self, height=96, ratio=16./9, defaultBackground='black'):
         super(ThumbnailCache, self).__init__()
         self.cache_ = {}
         self.height_ = height
         self.ratio_ = ratio
-
+        self.defaultBackground_ = defaultBackground
     def __call__(self, image_url):
         if not image_url in self.cache_:
 
@@ -110,7 +110,7 @@ class ThumbnailCache(object):
                 srcImage = QImage(filename)
             except:
                 srcImage = QImage(self.ratio_*self.height_, self.height_, QImage.Format.Format_RGB32)
-                srcImage.fill(QColor('black'))
+                srcImage.fill(QColor(self.defaultBackground_))
 
             # column images
             if srcImage.height() > 4*srcImage.width():
@@ -126,7 +126,7 @@ class ThumbnailCache(object):
                 destPos = QPoint(int(self.ratio_*self.height_-srcImage.width())//2, 0)
             destImage = QImage(self.ratio_*self.height_, self.height_, srcImage.format())
             painter = QPainter(destImage)
-            painter.fillRect(painter.window (), QColor('black'))
+            painter.fillRect(painter.window (), QColor(self.defaultBackground_))
             painter.drawImage(destPos, srcImage)
             painter.end()
 
@@ -301,19 +301,27 @@ class SiteTable(QTableWidget):
 
     def __init__(self, extractors):
         super(SiteTable, self).__init__()
-        self.setRowCount(len(extractors))
-        self.setColumnCount(1)
-        row = 0
-        cache = ThumbnailCache(64, 1.)
-        for extractor in extractors:
+        self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setVisible(False)
+        self.horizontalHeader().setResizeMode(QHeaderView.Fixed)
+        self.horizontalHeader().setDefaultSectionSize(160)
+        self.verticalHeader().setResizeMode(QHeaderView.Fixed)
+        self.verticalHeader().setDefaultSectionSize(64)
+        cols = 2
+        rows = len(extractors)/cols
+        self.setColumnCount(cols)
+        self.setRowCount(rows)
+        cache = ThumbnailCache(64, 1., defaultBackground='white')
+        self.setIconSize(QSize(100, 100))
+        for i in range(len(extractors)):
             item = QTableWidgetItem()
-            icon_url = extractor._get_icon_url()
+            icon_url = extractors[i]._get_icon_url()
             image = cache(icon_url)
             icon = QIcon(QPixmap.fromImage(image))
             item.setIcon(icon)
-            item.setText(extractor.IE_NAME)
-            self.setItem (row, 0, item)
-            row += 1
+            item.setSizeHint(QSize(100, 100))
+            item.setText(extractors[i].IE_NAME)
+            self.setItem (i/cols, i%cols, item)
         #connect(self, SIGNAL(cellClicked(int,int)), this, SLOT(previousWeek()));
         self.cellClicked.connect(self.onCellClick) 
 
