@@ -68,7 +68,7 @@ class DownloadManager(QStandardItemModel):
         if not vid in self.queue_:
             self.queue_.append(vid)
             item = QStandardItem(vid)
-            self.appendRow(item)
+            self.appendRow([item, QStandardItem('queued'), QStandardItem('0%')])
 
             self.worker_ = DownloadWorker(self)
             self.workerThread_ = QThread()
@@ -80,8 +80,16 @@ class DownloadManager(QStandardItemModel):
             self.workerThread_.start()
             #self.update()
 
-    def progress(self, percent):
-        print(percent)
+    def progress(self, dl_infos):
+        if 'filename' in dl_infos:
+            filename = dl_infos['filename']
+            index = int(os.path.basename(filename))-1
+            if 'total_bytes' in dl_infos and 'downloaded_bytes' in dl_infos:
+                total_bytes = dl_infos['total_bytes']
+                downloaded_bytes = dl_infos['downloaded_bytes']
+                percent = (1.0 * downloaded_bytes) / total_bytes
+                self.item(index,2).setText('%.2f %%' % percent)
+        self.dataChanged.emit(self.indexFromItem(self.item(index,0)), self.indexFromItem(self.item(index,2)))
 
     def update(self):
         if len(self.queue_) > 0:
@@ -93,6 +101,30 @@ class DownloadManager(QStandardItemModel):
             cmd_line = subprocess.list2cmdline(['vlc', '--fullscreen', filename])
             print('-- run player:', cmd_line)
             p = subprocess.Popen(['vlc', '--fullscreen', filename])
+
+    #def rowCount(self):
+        #return len(self.queue_)
+
+    #def columnCount(self):
+        #return 3
+
+    #def data(self, index, role):
+        #vid = self.queue_[index.row()]
+        #if (index.column()==0):
+            #return vid['title']
+        ##if (index.column()==1):
+            ##return vid['title']
+        #return ''
+
+
+class DownloadManagerView(QTableView):
+    def __init__(self):
+        super(DownloadManagerView, self).__init__()
+        dlm = DownloadManagerFactory().GetInstance()
+        self.setModel(dlm)
+
+    def sizeHint(self):
+        return QSize(256,200)
 
 
 class ThumbnailCache(object):
@@ -124,7 +156,7 @@ class ThumbnailCache(object):
             else:
                 srcImage = srcImage.scaledToHeight(self.height_)
                 destPos = QPoint(int(self.ratio_*self.height_-srcImage.width())//2, 0)
-            destImage = QImage(self.ratio_*self.height_, self.height_, srcImage.format())
+            destImage = QImage(self.ratio_*self.height_, self.height_, QImage.Format.Format_RGB32)
             painter = QPainter(destImage)
             painter.fillRect(painter.window (), QColor(self.defaultBackground_))
             painter.drawImage(destPos, srcImage)
@@ -191,8 +223,6 @@ class CacheWorker(QObject):
         self.finished.emit()
 
 class PlaylistModel(QAbstractListModel):
-
-
     def __init__(self):
         super(PlaylistModel, self).__init__()
         self.downloader_ = YoutubeDL()
@@ -335,7 +365,6 @@ class SiteTable(QTableWidget):
 
 
 class MainWindow(QMainWindow):
-
     @Slot()
     def onSearch(self):
         search_text = self.searchBar_.text()
@@ -385,6 +414,7 @@ class MainWindow(QMainWindow):
         panelWidget.addTab(browseWidget, 'Browse') 
         panelWidget.addTab(searchWidget, 'Search')
 
+
         mainLayout = QHBoxLayout()
         mainLayout.addWidget(panelWidget)
         searchView = PlaylistView()
@@ -394,10 +424,14 @@ class MainWindow(QMainWindow):
         mainWidget.setLayout(mainLayout)
         self.setCentralWidget(mainWidget)
 
+        dock = QDockWidget(self)
+        #dock.setAllowedAreas(LeftDockWidgetArea | RightDockWidgetArea)
+        downloadWidget = DownloadManagerView()
+        dock.setWidget(downloadWidget)
+        self.addDockWidget(Qt.BottomDockWidgetArea, dock)
+
 
 def main(argv=None):
-
-
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     # Every Qt application must have one and only one QApplication object;
     # it receives the command line arguments passed to the script, as they
