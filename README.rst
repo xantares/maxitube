@@ -3,6 +3,8 @@ maxitube
 
 A GUI to browse/search videos
 
+.. image:: snapshot1.png
+
 Supported sites
 ---------------
   - Le petit journal (http://www.canalplus.fr/c-divertissement/pid6378-c-le-petit-journal.html)
