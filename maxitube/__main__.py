@@ -201,9 +201,13 @@ class PlaylistItemDelegate(QItemDelegate):
             title = infos['title']
             painter.drawText(option.rect.topLeft().x()+int(128+self.height_), option.rect.topLeft().y()+16, title)
 
+        if 'url' in infos:
+            url = infos['url']
+            painter.drawText(option.rect.topLeft().x()+int(128+self.height_), option.rect.topLeft().y()+32, url)
+
         if 'upload_date' in infos:
             upload_date = infos['upload_date']
-            painter.drawText(option.rect.topLeft().x()+int(128+self.height_), option.rect.topLeft().y()+32, upload_date)
+            painter.drawText(option.rect.topLeft().x()+int(128+self.height_), option.rect.topLeft().y()+40, upload_date)
 
     def sizeHint(self, option, index):
         return QSize(int(2*self.ratio_*self.height_), self.height_)
