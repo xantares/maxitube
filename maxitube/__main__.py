@@ -24,6 +24,7 @@ from urllib.error import HTTPError
 try:
     from whoosh.fields import Schema, TEXT, ID, STORED
     from whoosh.index import create_in
+    from whoosh import scoring
     from whoosh.qparser import QueryParser
     whoosh_available = True
 except:
@@ -289,9 +290,8 @@ class PlaylistModel(QAbstractListModel):
                     #vids = future.result()
                     self.vids_.extend(vids)
 
-
         print('--', len(self.vids_), 'preliminary results')
-        if search_text and len(self.vids_)>100 and whoosh_available:
+        if search_text and len(self.vids_)>200 and whoosh_available:
             schema = Schema(title=TEXT(stored=True), vid=STORED)
             if not os.path.exists("index"):
                 os.mkdir("index")
@@ -305,11 +305,11 @@ class PlaylistModel(QAbstractListModel):
                 qp = QueryParser('title', schema=ix.schema)
                 query = qp.parse(search_text)
                 results = searcher.search(query, limit=100)
-                print('--', results)
+                print('--', len(results), 'final results')
                 if len(results)>0:
                     self.vids_ = []
                     for result in results:
-                        print('--', result)
+                        #print('--', result)
                         self.vids_.append(result['vid'])
 
         self.worker_ = CacheWorker(self)
