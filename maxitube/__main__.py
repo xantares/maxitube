@@ -252,10 +252,7 @@ class PlaylistModel(QAbstractListModel):
         self.image_cache_ = ThumbnailCache()
 
     def run_extractor(self, ext, search_text):
-        if not search_text:
-            return ext._get_homepage_results()
-        else:
-            return ext._get_n_results(search_text, 10)
+        return ext._get_n_results(search_text, 100)
 
     def update(self, extractor_name=None, search_text=None):
         print('-- update search_text=', search_text, 'extractor_name=', extractor_name)
