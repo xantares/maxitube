@@ -1,6 +1,7 @@
 from .goldenmoustache import GoldenMoustacheSE
 from .lepetitjournal import LePetitJournalSE
 
+
 _ALL_CLASSES = [
     klass
     for name, klass in globals().items()

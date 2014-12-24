@@ -52,24 +52,28 @@ class DownloadWorker(QObject):
 
 class DownloadManager(QStandardItemModel):
     def __init__(self):
-        super(DownloadManager, self).__init__()
+        super(DownloadManager, self).__init__(0, 4)
         self.initialized_ = True
         self.downloader_ = YoutubeDL()
         self.reader_ = 'vlc'
         self.downloader_.add_progress_hook(self.progress)
         self.queue_ = []
+        self.vids_ = []
         self.simulateous_downloads_ = 1
         self.download_location_ = tempfile.gettempdir()+'/maxitube'
         self.downloader_.params['outtmpl'] = self.download_location_+'/%(autonumber)s'
         self.downloader_.params['noprogress'] = False
+        self.setHorizontalHeaderLabels(['name', "status", "progress", "file"])
 
     @Slot(str)
     def add(self, vid):
         if not vid in self.queue_:
+            vid['status'] = 'queued'
             self.queue_.append(vid)
-            item = QStandardItem(vid)
-            self.appendRow([item, QStandardItem('queued'), QStandardItem('0%')])
-
+            self.vids_.append(vid)
+            url = vid['url']
+            item = QStandardItem(url)
+            self.appendRow([item, QStandardItem('queued'), QStandardItem(''), QStandardItem('')])
             self.worker_ = DownloadWorker(self)
             self.workerThread_ = QThread()
             self.worker_.moveToThread(self.workerThread_)
@@ -78,43 +82,31 @@ class DownloadManager(QStandardItemModel):
             self.workerThread_.finished.connect(self.worker_.deleteLater)
             self.workerThread_.finished.connect(self.workerThread_.deleteLater)
             self.workerThread_.start()
-            #self.update()
 
     def progress(self, dl_infos):
         if 'filename' in dl_infos:
             filename = dl_infos['filename']
             index = int(os.path.basename(filename))-1
+            self.item(index, 3).setText(filename)
+            if 'status' in dl_infos:
+                status = dl_infos['status']
+                self.item(index,1).setText(status)
             if 'total_bytes' in dl_infos and 'downloaded_bytes' in dl_infos:
                 total_bytes = dl_infos['total_bytes']
                 downloaded_bytes = dl_infos['downloaded_bytes']
-                percent = (1.0 * downloaded_bytes) / total_bytes
-                self.item(index,2).setText('%.2f %%' % percent)
-        self.dataChanged.emit(self.indexFromItem(self.item(index,0)), self.indexFromItem(self.item(index,2)))
+                percent = (100.0 * downloaded_bytes) / total_bytes
+                self.item(index, 2).setText('%.2f %%' % percent)
+            self.dataChanged.emit(self.indexFromItem(self.item(index, 0)), self.indexFromItem(self.item(index, 2)))
+            self.vids_[index] = dict(list(self.vids_[index].items()) + list(dl_infos.items()))
+        #print(dl_infos)
 
     def update(self):
         if len(self.queue_) > 0:
             self.downloader_.add_progress_hook(self.progress)
             vid = self.queue_.pop()
-            print('-- downloading:',vid)
-            infos = self.downloader_.extract_info(vid)
-            filename = self.download_location_ + '/' + ('%05d' % self.downloader_._num_downloads)
-            cmd_line = subprocess.list2cmdline(['vlc', '--fullscreen', filename])
-            print('-- run player:', cmd_line)
-            p = subprocess.Popen(['vlc', '--fullscreen', filename])
-
-    #def rowCount(self):
-        #return len(self.queue_)
-
-    #def columnCount(self):
-        #return 3
-
-    #def data(self, index, role):
-        #vid = self.queue_[index.row()]
-        #if (index.column()==0):
-            #return vid['title']
-        ##if (index.column()==1):
-            ##return vid['title']
-        #return ''
+            url = vid['url']
+            print('-- downloading:',url)
+            infos = self.downloader_.extract_info(url)
 
 
 class DownloadManagerView(QTableView):
@@ -122,9 +114,32 @@ class DownloadManagerView(QTableView):
         super(DownloadManagerView, self).__init__()
         dlm = DownloadManagerFactory().GetInstance()
         self.setModel(dlm)
+        self.setItemDelegate(DownloadManagerItemDelegate())
 
     def sizeHint(self):
         return QSize(256,200)
+
+class DownloadManagerItemDelegate(QItemDelegate):
+    def __init__(self):
+        super(DownloadManagerItemDelegate, self).__init__()
+
+    def editorEvent(self, event, model, option, index):
+        if (event.type() == QEvent.MouseButtonPress):
+            dlm = DownloadManagerFactory().GetInstance()
+            vid = dlm.vids_[index.row()]
+            if 'status' in vid:
+                status = vid['status']
+                filename = None
+                if status == 'finished':
+                    #filename = self.download_location_ + '/' + ('%05d' % self.downloader_._num_downloads)
+                    filename = vid['filename']
+                elif status == 'downloading':
+                    filename = vid['tmpfilename']
+                if not filename is None:
+                    cmd_line = subprocess.list2cmdline(['vlc', '--fullscreen', filename])
+                    print('-- run player:', cmd_line)
+                    p = subprocess.Popen(['vlc', '--fullscreen', filename])
+        return False
 
 
 class ThumbnailCache(object):
@@ -166,7 +181,7 @@ class ThumbnailCache(object):
         return self.cache_[image_url]
 
 class PlaylistItemDelegate(QItemDelegate):
-    queueVid = Signal(str)
+    queueVid = Signal(dict)
 
     def __init__(self, height=96, ratio=16./9):
         super(PlaylistItemDelegate, self).__init__()
@@ -195,8 +210,7 @@ class PlaylistItemDelegate(QItemDelegate):
 
     def editorEvent(self, event, model, option, index):
         if (event.type() == QEvent.MouseButtonPress):
-            url = index.data()['url']
-            self.queueVid.emit(url)
+            self.queueVid.emit(index.data())
             return True
         return False
 
