@@ -2,9 +2,9 @@ from .goldenmoustache import GoldenMoustacheSE
 from .lepetitjournal import LePetitJournalSE
 
 import os
-#extra_file = os.path.dirname(__file__)+'/extra_imports.py'
-#if os.path.exists(extra_file):
-    #exec(compile(open(extra_file).read(), 'a_filename', 'exec'))
+extra_file = os.path.dirname(__file__)+'/extra_imports.py'
+if os.path.exists(extra_file):
+    exec(compile(open(extra_file).read(), 'a_filename', 'exec'))
 
 _ALL_CLASSES = [
     klass
