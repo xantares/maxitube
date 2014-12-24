@@ -288,7 +288,7 @@ class PlaylistModel(QAbstractListModel):
                     self.vids_.extend(vids)
 
         print('--', len(self.vids_), 'preliminary results')
-        if search_text and len(self.vids_)>200 and whoosh_available:
+        if search_text and len(self.vids_)>250 and whoosh_available:
             schema = Schema(title=TEXT(stored=True), vid=STORED)
             if not os.path.exists("index"):
                 os.mkdir("index")
@@ -303,7 +303,7 @@ class PlaylistModel(QAbstractListModel):
                 query = qp.parse(search_text)
                 results = searcher.search(query, limit=100)
                 print('--', len(results), 'final results')
-                if len(results)>0:
+                if len(results)>10:
                     self.vids_ = []
                     for result in results:
                         #print('--', result)
