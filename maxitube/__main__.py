@@ -250,6 +250,7 @@ class PlaylistModel(QAbstractListModel):
             ext.set_downloader(self.downloader_)
         self.vids_ = []
         self.image_cache_ = ThumbnailCache()
+        self.workerThread_ = QThread()
 
     def run_extractor(self, ext, search_text):
         return ext._get_n_results(search_text, 100)
@@ -310,12 +311,11 @@ class PlaylistModel(QAbstractListModel):
                         self.vids_.append(result['vid'])
 
         self.worker_ = CacheWorker(self)
-        self.workerThread_ = QThread()
         self.worker_.moveToThread(self.workerThread_)
         self.workerThread_.started.connect(self.worker_.doWork)
         self.worker_.finished.connect(self.workerThread_.quit)
-        self.workerThread_.finished.connect(self.worker_.deleteLater)
-        self.workerThread_.finished.connect(self.workerThread_.deleteLater)
+        #self.workerThread_.finished.connect(self.worker_.deleteLater)
+        #self.workerThread_.finished.connect(self.workerThread_.deleteLater)
         self.workerThread_.start()
         self.modelReset.emit()
 
