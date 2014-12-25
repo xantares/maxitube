@@ -58,6 +58,7 @@ class DownloadManager(QStandardItemModel):
         self.downloader_ = YoutubeDL()
         self.reader_ = 'vlc'
         self.downloader_.add_progress_hook(self.progress)
+        self.workerThread_ = QThread()
         self.queue_ = []
         self.vids_ = []
         self.simulateous_downloads_ = 1
@@ -76,12 +77,11 @@ class DownloadManager(QStandardItemModel):
             item = QStandardItem(url)
             self.appendRow([item, QStandardItem('queued'), QStandardItem(''), QStandardItem('')])
             self.worker_ = DownloadWorker(self)
-            self.workerThread_ = QThread()
             self.worker_.moveToThread(self.workerThread_)
             self.workerThread_.started.connect(self.worker_.doWork)
             self.worker_.finished.connect(self.workerThread_.quit)
             self.workerThread_.finished.connect(self.worker_.deleteLater)
-            self.workerThread_.finished.connect(self.workerThread_.deleteLater)
+            #self.workerThread_.finished.connect(self.workerThread_.deleteLater)
             self.workerThread_.start()
 
     def progress(self, dl_infos):
