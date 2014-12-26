@@ -158,6 +158,7 @@ class ThumbnailCache(object):
                 filename, headers = urllib.request.urlretrieve(image_url)
                 srcImage = QImage(filename)
             except:
+                print ('-- could not get',  image_url)
                 srcImage = QImage(self.ratio_*self.height_, self.height_, QImage.Format.Format_RGB32)
                 srcImage.fill(QColor(self.defaultBackground_))
 

@@ -31,6 +31,9 @@ class HomepageSearchExtractor(SearchInfoExtractor):
 
             if len(page_result) == 0:
                 break
+            # check if the same vids are returned
+            if len(results)>0 and len(page_result)>0 and (page_result[-1]['url']==results[-1]['url']):
+                break
             results.extend(page_result)
             if len(results)>n:
                 results = results[:n]
