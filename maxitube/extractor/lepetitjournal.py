@@ -23,4 +23,4 @@ class LePetitJournalSE(HomepageSearchExtractor):
         return self.parse_page(url)
 
     def _get_icon_url(self):
-        return 'https://pbs.twimg.com/profile_images/529938139536580609/_3hhguDs_400x400.jpeg'
+        return 'http://upload.wikimedia.org/wikipedia/fr/e/eb/Logo_Petit_Journal.jpg'
