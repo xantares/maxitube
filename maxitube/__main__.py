@@ -239,10 +239,11 @@ class CacheWorker(QObject):
 
             for future in concurrent.futures.as_completed(future_to_url):
                 i = future_to_url[future]
-                url = self.model_.vids_[i]['thumbnail']
-                if future.exception() is not None:
-                    print('%s generated an exception: %s' % (url,
-                                                            future.exception()))
+                if i < len(self.model_.vids_):
+                    url = self.model_.vids_[i]['thumbnail']
+                    if future.exception() is not None:
+                        print('%s generated an exception: %s' % (url,
+                                                                future.exception()))
         self.finished.emit()
 
 class PlaylistModel(QAbstractListModel):
