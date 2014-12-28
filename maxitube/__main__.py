@@ -58,7 +58,7 @@ class DownloadManager(QStandardItemModel):
         self.downloader_ = YoutubeDL()
         self.reader_ = 'vlc'
         self.downloader_.add_progress_hook(self.progress)
-        self.workerThread_ = QThread()
+        self.workerThreads_ = []
         self.queue_ = []
         self.vids_ = []
         self.simulateous_downloads_ = 1
@@ -77,12 +77,14 @@ class DownloadManager(QStandardItemModel):
             item = QStandardItem(url)
             self.appendRow([item, QStandardItem('queued'), QStandardItem(''), QStandardItem('')])
             self.worker_ = DownloadWorker(self)
-            self.worker_.moveToThread(self.workerThread_)
-            self.workerThread_.started.connect(self.worker_.doWork)
-            self.worker_.finished.connect(self.workerThread_.quit)
-            self.workerThread_.finished.connect(self.worker_.deleteLater)
+            thread = QThread()
+            self.worker_.moveToThread(thread)
+            thread.started.connect(self.worker_.doWork)
+            self.worker_.finished.connect(thread.quit)
+            thread.finished.connect(self.worker_.deleteLater)
             #self.workerThread_.finished.connect(self.workerThread_.deleteLater)
-            self.workerThread_.start()
+            thread.start()
+            self.workerThreads_.append(thread)
 
     def progress(self, dl_infos):
         if 'filename' in dl_infos:
@@ -252,7 +254,7 @@ class PlaylistModel(QAbstractListModel):
             ext.set_downloader(self.downloader_)
         self.vids_ = []
         self.image_cache_ = ThumbnailCache()
-        self.workerThread_ = QThread()
+        self.workerThreads_ = []
 
     def run_extractor(self, ext, search_text):
         return ext._get_n_results(search_text, 100)
@@ -313,12 +315,14 @@ class PlaylistModel(QAbstractListModel):
                         self.vids_.append(result['vid'])
 
         self.worker_ = CacheWorker(self)
-        self.worker_.moveToThread(self.workerThread_)
-        self.workerThread_.started.connect(self.worker_.doWork)
-        self.worker_.finished.connect(self.workerThread_.quit)
+        thread = QThread()
+        self.worker_.moveToThread(thread)
+        thread.started.connect(self.worker_.doWork)
+        self.worker_.finished.connect(thread.quit)
         #self.workerThread_.finished.connect(self.worker_.deleteLater)
         #self.workerThread_.finished.connect(self.workerThread_.deleteLater)
-        self.workerThread_.start()
+        thread.start()
+        self.workerThreads_.append(thread)
         self.modelReset.emit()
 
     def rowCount(self, parent):
