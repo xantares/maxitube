@@ -1,5 +1,6 @@
 from .goldenmoustache import GoldenMoustacheSE
 from .lepetitjournal import LePetitJournalSE
+from .youtube import YouTubeSE
 
 import os
 extra_file = os.path.dirname(__file__)+'/extra_imports.py'
