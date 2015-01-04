@@ -19,6 +19,7 @@ import os
 import dateutil.parser
 import signal
 import concurrent.futures
+import math as m
 from urllib.error import HTTPError
 
 try:
@@ -360,7 +361,7 @@ class SiteTable(QTableWidget):
         self.verticalHeader().setResizeMode(QHeaderView.Fixed)
         self.verticalHeader().setDefaultSectionSize(64)
         cols = 2
-        rows = len(extractors)/cols
+        rows = m.ceil(1.0*len(extractors)/cols)
         self.setColumnCount(cols)
         self.setRowCount(rows)
         cache = ThumbnailCache(64, 1., defaultBackground='white')
