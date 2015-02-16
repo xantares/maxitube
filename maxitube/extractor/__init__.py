@@ -1,5 +1,6 @@
 from .goldenmoustache import GoldenMoustacheSE
 from .lepetitjournal import LePetitJournalSE
+from .zapping import ZappingSE
 from .youtube import YouTubeSE
 
 import os
