@@ -90,7 +90,10 @@ class DownloadManager(QStandardItemModel):
     def progress(self, dl_infos):
         if 'filename' in dl_infos:
             filename = dl_infos['filename']
-            index = int(os.path.basename(filename))-1
+            try:
+                index = int(os.path.basename(filename))-1
+            except:
+                index = 0
             if index < self.rowCount():
                 self.item(index, 3).setText(filename)
                 if 'status' in dl_infos:
@@ -99,11 +102,12 @@ class DownloadManager(QStandardItemModel):
                 if 'total_bytes' in dl_infos and 'downloaded_bytes' in dl_infos:
                     total_bytes = dl_infos['total_bytes']
                     downloaded_bytes = dl_infos['downloaded_bytes']
-                    percent = (100.0 * downloaded_bytes) / total_bytes
+                    percent = 0.
+                    if total_bytes > 0.:
+                        percent = (100.0 * downloaded_bytes) / total_bytes
                     self.item(index, 2).setText('%.2f %%' % percent)
                 self.dataChanged.emit(self.indexFromItem(self.item(index, 0)), self.indexFromItem(self.item(index, 2)))
                 self.vids_[index] = dict(list(self.vids_[index].items()) + list(dl_infos.items()))
-        #print(dl_infos)
 
     def update(self):
         if len(self.queue_) > 0:
