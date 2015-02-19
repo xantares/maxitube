@@ -20,7 +20,8 @@ import dateutil.parser
 import signal
 import concurrent.futures
 import math as m
-from urllib.error import HTTPError
+from urllib.error import URLError
+from youtube_dl.utils import DownloadError
 
 try:
     from whoosh.fields import Schema, TEXT, ID, STORED
@@ -44,40 +45,99 @@ class DownloadManagerFactory:
 
 class DownloadWorker(QObject):
     finished = Signal()
-    def __init__(self, manager):
+    def __init__(self, manager, vid):
         super(DownloadWorker, self).__init__()
         self.manager_ = manager
+        self.vid_ = vid
 
     def doWork(self):
-        self.manager_.update()
+        self.manager_.start_download(self.vid_)
         self.finished.emit()
 
-class DownloadManager(QStandardItemModel):
+class DownloadManager(QAbstractTableModel):
+    #requestUpdateLine = Signal(int, str, str)
+
     def __init__(self):
-        super(DownloadManager, self).__init__(0, 4)
+        super(DownloadManager, self).__init__()
         self.initialized_ = True
         self.downloader_ = YoutubeDL()
         self.reader_ = 'vlc'
         self.downloader_.add_progress_hook(self.progress)
         self.workerThreads_ = []
-        self.queue_ = []
         self.vids_ = []
-        self.simulateous_downloads_ = 1
+        self._max_simulateous_downloads = 1
         self.download_location_ = tempfile.gettempdir()+'/maxitube'
         self.downloader_.params['outtmpl'] = self.download_location_+'/%(autonumber)s'
         self.downloader_.params['noprogress'] = False
-        self.setHorizontalHeaderLabels(['name', "status", "progress", "file"])
+        #self.setHorizontalHeaderLabels(['name', "status", "progress", "file"])
+        #self.requestUpdateLine.connect(self.updateLine)
 
     @Slot(str)
     def add(self, vid):
-        if not vid in self.queue_:
-            vid['status'] = 'queued'
-            self.queue_.append(vid)
-            self.vids_.append(vid)
-            url = vid['url']
-            item = QStandardItem(url)
-            self.appendRow([item, QStandardItem('queued'), QStandardItem(''), QStandardItem('')])
-            self.worker_ = DownloadWorker(self)
+        #print('--add',vid)
+        vid['status'] = 'queued'
+        index = len(self.vids_)-1
+        self.beginInsertRows(QModelIndex(), index, index)
+        self.vids_.append(vid)
+        self.endInsertRows()
+        #self.insertRows(self.rowCount(), 1)
+        self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount()-1, self.columnCount()-1))
+        #url = vid['url']
+        #item = QStandardItem(url)
+        #self.appendRow([item, QStandardItem('queued'), QStandardItem(''), QStandardItem('')])
+        self.update()
+
+    def columnCount(self, parent=QModelIndex()):
+        return 4
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.vids_)
+
+    def data(self, index, role):
+        data = None
+        if role == Qt.DisplayRole:
+            row = index.row()
+            vid = self.vids_[row]
+            section = index.column()
+            if section == 0:
+                data = vid['url']
+            elif section == 1 and 'status' in vid:
+                data = vid['status']
+            elif section == 2 and '_percent_str' in vid:
+                data = vid['_percent_str']
+            elif section == 3 and 'filename' in vid:
+                data = vid['filename']
+        return data
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        data = None
+        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+            if section == 0:
+                data = 'Url'
+            elif section == 1:
+                data = 'Status'
+            elif section == 2:
+                data = 'Progress'
+            elif section == 3:
+                data = 'File'
+        return data
+
+    def update(self):
+        simulateous_downloads = 0
+        first_queued = None
+        # FIXME iterate over self.vids_
+        for index in range(self.rowCount()):
+            vid = self.vids_[index]
+            status = vid['status']
+            if status == 'downloading':
+                simulateous_downloads += 1
+            elif status == 'queued':
+                if not first_queued:
+                    first_queued = vid
+
+        if first_queued and (simulateous_downloads < self._max_simulateous_downloads):
+            self.worker_ = DownloadWorker(self, first_queued)
+            self.worker_.finished.connect(self.update)
             thread = QThread()
             self.worker_.moveToThread(thread)
             thread.started.connect(self.worker_.doWork)
@@ -88,35 +148,30 @@ class DownloadManager(QStandardItemModel):
             self.workerThreads_.append(thread)
 
     def progress(self, dl_infos):
-        if 'filename' in dl_infos:
+        filename = None
+        if 'tmpfilename' in dl_infos:
+            filename = dl_infos['tmpfilename']
+        elif 'filename' in dl_infos:
             filename = dl_infos['filename']
-            try:
-                index = int(os.path.basename(filename))-1
-            except:
-                index = 0
-            if index < self.rowCount():
-                self.item(index, 3).setText(filename)
-                if 'status' in dl_infos:
-                    status = dl_infos['status']
-                    self.item(index,1).setText(status)
-                if 'total_bytes' in dl_infos and 'downloaded_bytes' in dl_infos:
-                    total_bytes = dl_infos['total_bytes']
-                    downloaded_bytes = dl_infos['downloaded_bytes']
-                    percent = 0.
-                    if total_bytes > 0.:
-                        percent = (100.0 * downloaded_bytes) / total_bytes
-                    self.item(index, 2).setText('%.2f %%' % percent)
-                self.dataChanged.emit(self.indexFromItem(self.item(index, 0)), self.indexFromItem(self.item(index, 2)))
-                self.vids_[index] = dict(list(self.vids_[index].items()) + list(dl_infos.items()))
+        if filename:
+            index = int(os.path.splitext(os.path.basename(filename))[0])-1
+            self.vids_[index]['filename'] = filename
+            self.vids_[index]['status'] = dl_infos['status']
+            if '_percent_str' in dl_infos:
+                self.vids_[index]['_percent_str']= dl_infos['_percent_str']
+            self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount()-1, self.columnCount()-1))
 
-    def update(self):
-        if len(self.queue_) > 0:
-            self.downloader_.add_progress_hook(self.progress)
-            vid = self.queue_.pop()
-            url = vid['url']
-            print('-- downloading:',url)
+    def start_download(self, vid):
+        self.downloader_.add_progress_hook(self.progress)
+        url = vid['url']
+        print('-- downloading:',url)
+        try:
             infos = self.downloader_.extract_info(url)
-
+        except DownloadError:
+            for index in range(len(self.vids_)):
+                if url == self.vids_[index]['url']:
+                    self.vids_[index]['status'] = 'error'
+                    self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount()-1, self.columnCount()-1))
 
 class DownloadManagerView(QTableView):
     def __init__(self):
@@ -143,7 +198,7 @@ class DownloadManagerItemDelegate(QItemDelegate):
                     #filename = self.download_location_ + '/' + ('%05d' % self.downloader_._num_downloads)
                     filename = vid['filename']
                 elif status == 'downloading':
-                    filename = vid['tmpfilename']
+                    filename = vid['filename']
                 if not filename is None:
                     cmd_line = subprocess.list2cmdline(['vlc', '--fullscreen', filename])
                     print('-- run player:', cmd_line)
