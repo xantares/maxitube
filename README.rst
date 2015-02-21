@@ -22,9 +22,9 @@ Installation
 
 Dependencies
 ------------
-  - PySide
-  - youtube-dl
-  - whoosh (optional for accurate search results)
+ - PySide
+ - youtube-dl
+ - whoosh (optional for accurate search results)
 
 License
 -------
