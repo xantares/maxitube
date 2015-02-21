@@ -19,12 +19,12 @@ Installation
     python setup.py install --user
     ~/.local/bin/maxitube
 
-
 Dependencies
 ------------
- - PySide
- - youtube-dl
- - whoosh (optional for accurate search results)
+  - Python 3.X
+  - PySide
+  - youtube-dl
+  - whoosh (optional for accurate search results)
 
 License
 -------
