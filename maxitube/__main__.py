@@ -16,7 +16,6 @@ import urllib
 import tempfile
 import subprocess
 import os
-import dateutil.parser
 import signal
 import concurrent.futures
 import math as m
