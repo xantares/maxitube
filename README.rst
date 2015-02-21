@@ -7,10 +7,10 @@ A GUI to browse/search videos
 
 Supported sites
 ---------------
-  - GoldenMoustache (http://www.goldenmoustache.com/)
-  - Le petit journal (http://www.canalplus.fr/c-divertissement/pid6378-c-le-petit-journal.html)
-  - Made in Groland (http://www.canalplus.fr/c-divertissement/pid1787-c-groland.html)
-  - Le Zapping (http://www.canalplus.fr/c-infos-documentaires/pid1830-c-zapping.html)
+* GoldenMoustache (http://www.goldenmoustache.com/)
+* Le petit journal (http://www.canalplus.fr/c-divertissement/pid6378-c-le-petit-journal.html)
+* Made in Groland (http://www.canalplus.fr/c-divertissement/pid1787-c-groland.html)
+* Le Zapping (http://www.canalplus.fr/c-infos-documentaires/pid1830-c-zapping.html)
 
 Installation
 ------------
@@ -21,10 +21,10 @@ Installation
 
 Dependencies
 ------------
-  - Python 3.X
-  - PySide
-  - youtube-dl
-  - whoosh (optional for accurate search results)
+* Python 3.X
+* PySide
+* youtube-dl
+* whoosh (optional for accurate search results)
 
 License
 -------
