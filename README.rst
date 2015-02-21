@@ -21,11 +21,11 @@ Installation
 
 Dependencies
 ------------
-* Python 3.X
+* Python 3.x
 * PySide
 * youtube-dl
 * whoosh (optional for accurate search results)
 
 License
 -------
-  LGPL
+LGPL
