@@ -12,6 +12,12 @@ Supported sites
   - Made in Groland (http://www.canalplus.fr/c-divertissement/pid1787-c-groland.html)
   - Le Zapping (http://www.canalplus.fr/c-infos-documentaires/pid1830-c-zapping.html)
 
+Installation
+------------
+::
+    python setup.py install --user
+    ~/.local/bin/maxitube
+
 Dependencies
 ------------
   - PySide

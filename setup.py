@@ -86,7 +86,7 @@ setup(
     author_email='xantares09@hotmail.com',
     maintainer='xantares',
     maintainer_email='xantares09@hotmail.com',
-    packages=['maxitube'],
+    packages=['maxitube', 'maxitube.extractor'],
 
     # Provokes warning on most systems (why?!)
     # test_suite = 'nose.collector',

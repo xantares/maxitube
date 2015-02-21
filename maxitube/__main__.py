@@ -10,7 +10,7 @@ from PySide.QtGui import *
     #from PyQt4.QtGui import *
 
 from youtube_dl import YoutubeDL
-import extractor
+import maxitube.extractor as extractor
 #from urllib.request import urlretrieve
 import urllib
 import tempfile
@@ -512,16 +512,8 @@ class MainWindow(QMainWindow):
         dock.setWidget(downloadWidget)
         self.addDockWidget(Qt.BottomDockWidgetArea, dock)
 
+if __name__ == '__main__':
+    import maxitube
+    maxitube.main()
 
-def main(argv=None):
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-    # Every Qt application must have one and only one QApplication object;
-    # it receives the command line arguments passed to the script, as they
-    # can be used to customize the application's appearance and behavior
-    qt_app = QApplication(sys.argv)
-    mainWindow = MainWindow()
-    mainWindow.show()
-    #qt_app.setMainWidget(mainWidget)
-    # Run the application's event loop
-    qt_app.exec_()
-main()
+
