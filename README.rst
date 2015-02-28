@@ -15,7 +15,6 @@ Supported sites
 Installation
 ------------
 ::
-
     python setup.py install --user
     ~/.local/bin/maxitube
 
