@@ -57,13 +57,12 @@ class DownloadWorker(QtCore.QObject):
         self.finished.emit()
 
 class DownloadManager(QtCore.QAbstractTableModel):
-    #requestUpdateLine = Signal(int, str, str)
+    playVid = QtCore.Signal(str)
 
     def __init__(self):
         super(DownloadManager, self).__init__()
         self.initialized_ = True
         self.downloader_ = YoutubeDL()
-        self.reader_ = 'vlc'
         self.downloader_.add_progress_hook(self.progress)
         self.workerThreads_ = []
         self.vids_ = []
@@ -202,9 +201,8 @@ class DownloadManagerItemDelegate(QtGui.QItemDelegate):
                 elif status == 'downloading':
                     filename = vid['filename']
                 if not filename is None:
-                    cmd_line = subprocess.list2cmdline(['vlc', '--fullscreen', filename])
-                    print('-- run player:', cmd_line)
-                    p = subprocess.Popen(['vlc', '--fullscreen', filename])
+                    dlm.playVid.emit(filename)
+
         return False
 
 
@@ -448,6 +446,82 @@ class SiteTable(QtGui.QTableWidget):
         return QtCore.QSize(256,800)
 
 
+class PlayerWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        super(PlayerWidget, self).__init__(parent)
+        if vlc_available:
+            videoLayout = QtGui.QVBoxLayout()
+            self.instance = vlc.Instance()
+            self.mediaplayer = self.instance.media_player_new()
+            # In this widget, the video will be drawn
+            if sys.platform == "darwin": # for MacOS
+                self.videoframe = QtGui.QMacCocoaViewContainer(0)
+            else:
+                self.videoframe = QtGui.QFrame(self)
+            self.palette = self.videoframe.palette()
+            self.palette.setColor (QtGui.QPalette.Window,
+                                QtGui.QColor(0,0,0))
+            self.videoframe.setPalette(self.palette)
+            self.videoframe.setAutoFillBackground(True)
+            videoLayout.addWidget(self.videoframe)
+            self.setLayout(videoLayout)
+
+    def PlayPause(self):
+        """Toggle play/pause status
+        """
+        if vlc_available:
+            if self.mediaplayer.is_playing():
+                self.mediaplayer.pause()
+                #self.playbutton.setText("Play")
+                self.isPaused = True
+            else:
+                if self.mediaplayer.play() == -1:
+                    self.OpenFile()
+                    return
+                self.mediaplayer.play()
+                #self.playbutton.setText("Pause")
+                #self.timer.start()
+                self.isPaused = False
+
+    @QtCore.Slot(str)
+    def OpenFile(self, filename=None):
+        """Open a media file in a MediaPlayer
+        """
+        if filename is None:
+            filename = QtGui.QFileDialog.getOpenFileName(self, "Open File", user.home)
+        if not filename:
+            return
+
+        if vlc_available:
+            # create the media
+            self.media = self.instance.media_new(filename)
+            # put the media in the media player
+            self.mediaplayer.set_media(self.media)
+
+            # parse the metadata of the file
+            self.media.parse()
+            # set the title of the track as window title
+            #self.setWindowTitle(self.media.get_meta(0))
+
+            # the media player has to be 'connected' to the QFrame
+            # (otherwise a video would be displayed in it's own window)
+            # this is platform specific!
+            # you have to give the id of the QFrame (or similar object) to
+            # vlc, different platforms have different functions for this
+            if sys.platform == "linux2": # for Linux using the X Server
+                self.mediaplayer.set_xwindow(self.videoframe.winId())
+            elif sys.platform == "win32": # for Windows
+                self.mediaplayer.set_hwnd(self.videoframe.winId())
+            elif sys.platform == "darwin": # for MacOS
+                self.mediaplayer.set_nsobject(self.videoframe.winId())
+            self.PlayPause()
+        else:
+            cmd_list = ['vlc', '--fullscreen', filename]
+            cmd_line = subprocess.list2cmdline(cmd_list)
+            print('-- run player:', cmd_line)
+            p = subprocess.Popen(cmd_list)
+
+
 class MainWindow(QtGui.QMainWindow):
     @QtCore.Slot()
     def onSearch(self):
@@ -505,24 +579,10 @@ class MainWindow(QtGui.QMainWindow):
         searchView.setModel(self.playlist_)
         mainLayout.addWidget(searchView)
 
-        if vlc_available:
-            videoLayout = QtGui.QVBoxLayout()
-            self.instance = vlc.Instance()
-            self.mediaplayer = self.instance.media_player_new()
-            # In this widget, the video will be drawn
-            if sys.platform == "darwin": # for MacOS
-                self.videoframe = QtGui.QMacCocoaViewContainer(0)
-            else:
-                self.videoframe = QtGui.QFrame()
-            self.palette = self.videoframe.palette()
-            self.palette.setColor (QtGui.QPalette.Window,
-                                QtGui.QColor(0,0,0))
-            self.videoframe.setPalette(self.palette)
-            self.videoframe.setAutoFillBackground(True)
-            videoLayout.addWidget(self.videoframe)
-            videoWidget = QtGui.QWidget()
-            videoWidget.setLayout(videoLayout)
-            mainLayout.addWidget(videoWidget)
+        playerWidget = PlayerWidget()
+        dlm = DownloadManagerFactory().GetInstance()
+        dlm.playVid.connect(playerWidget.OpenFile)
+        mainLayout.addWidget(playerWidget)
 
         mainWidget = QtGui.QWidget()
         mainWidget.setLayout(mainLayout)
