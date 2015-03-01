@@ -14,22 +14,21 @@ Supported sites
 
 Run
 ---
-::
+.. code:: bash
     $ python -m maxitube
-
 
 Installation
 ------------
-::
+.. code:: bash
     # python setup.py install
 
 
 Dependencies
 ------------
 * Python_ 3.x
-* _PySide
-* _youtube-dl
-* _whoosh (optional for accurate search results
+* PySide_
+* youtube-dl_
+* whoosh_ (optional for accurate search results
 
 .. _Python: http://www.python.org/
 .. _PySide: http://wiki.qt.io/index.php?title=Pyside
