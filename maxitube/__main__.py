@@ -3,11 +3,8 @@
 import sys
 # Import the core and GUI elements of Qt
 
-from PySide.QtCore import *
-from PySide.QtGui import *
-
-    #from PyQt4.QtCore import *
-    #from PyQt4.QtGui import *
+from PySide import QtCore
+from PySide import QtGui
 
 from youtube_dl import YoutubeDL
 import maxitube.extractor as extractor
@@ -31,6 +28,12 @@ try:
 except:
     whoosh_available = False
 
+try:
+    import vlc
+    vlc_available = True
+except:
+    vlc_available = False
+
 
 class DownloadManagerFactory:
     instance_ = None
@@ -42,8 +45,8 @@ class DownloadManagerFactory:
     def GetInstance(self):
         return self.__class__.instance_
 
-class DownloadWorker(QObject):
-    finished = Signal()
+class DownloadWorker(QtCore.QObject):
+    finished = QtCore.Signal()
     def __init__(self, manager, vid):
         super(DownloadWorker, self).__init__()
         self.manager_ = manager
@@ -53,7 +56,7 @@ class DownloadWorker(QObject):
         self.manager_.start_download(self.vid_)
         self.finished.emit()
 
-class DownloadManager(QAbstractTableModel):
+class DownloadManager(QtCore.QAbstractTableModel):
     #requestUpdateLine = Signal(int, str, str)
 
     def __init__(self):
@@ -71,12 +74,12 @@ class DownloadManager(QAbstractTableModel):
         #self.setHorizontalHeaderLabels(['name', "status", "progress", "file"])
         #self.requestUpdateLine.connect(self.updateLine)
 
-    @Slot(str)
+    @QtCore.Slot(str)
     def add(self, vid):
         #print('--add',vid)
         vid['status'] = 'queued'
         index = len(self.vids_)-1
-        self.beginInsertRows(QModelIndex(), index, index)
+        self.beginInsertRows(QtCore.QModelIndex(), index, index)
         self.vids_.append(vid)
         self.endInsertRows()
         #self.insertRows(self.rowCount(), 1)
@@ -86,15 +89,15 @@ class DownloadManager(QAbstractTableModel):
         #self.appendRow([item, QStandardItem('queued'), QStandardItem(''), QStandardItem('')])
         self.update()
 
-    def columnCount(self, parent=QModelIndex()):
+    def columnCount(self, parent=QtCore.QModelIndex()):
         return 4
 
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self.vids_)
 
     def data(self, index, role):
         data = None
-        if role == Qt.DisplayRole:
+        if role == QtCore.Qt.DisplayRole:
             row = index.row()
             vid = self.vids_[row]
             section = index.column()
@@ -108,9 +111,9 @@ class DownloadManager(QAbstractTableModel):
                 data = vid['filename']
         return data
 
-    def headerData(self, section, orientation, role=Qt.DisplayRole):
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
         data = None
-        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+        if role == QtCore.Qt.DisplayRole and orientation == QtCore.Qt.Horizontal:
             if section == 0:
                 data = 'Url'
             elif section == 1:
@@ -137,7 +140,7 @@ class DownloadManager(QAbstractTableModel):
         if first_queued and (simulateous_downloads < self._max_simulateous_downloads):
             self.worker_ = DownloadWorker(self, first_queued)
             self.worker_.finished.connect(self.update)
-            thread = QThread()
+            thread = QtCore.QThread()
             self.worker_.moveToThread(thread)
             thread.started.connect(self.worker_.doWork)
             self.worker_.finished.connect(thread.quit)
@@ -172,7 +175,7 @@ class DownloadManager(QAbstractTableModel):
                     self.vids_[index]['status'] = 'error'
                     self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount()-1, self.columnCount()-1))
 
-class DownloadManagerView(QTableView):
+class DownloadManagerView(QtGui.QTableView):
     def __init__(self):
         super(DownloadManagerView, self).__init__()
         dlm = DownloadManagerFactory().GetInstance()
@@ -180,14 +183,14 @@ class DownloadManagerView(QTableView):
         self.setItemDelegate(DownloadManagerItemDelegate())
 
     def sizeHint(self):
-        return QSize(256,200)
+        return QtCore.QSize(256,200)
 
-class DownloadManagerItemDelegate(QItemDelegate):
+class DownloadManagerItemDelegate(QtGui.QItemDelegate):
     def __init__(self):
         super(DownloadManagerItemDelegate, self).__init__()
 
     def editorEvent(self, event, model, option, index):
-        if (event.type() == QEvent.MouseButtonPress):
+        if (event.type() == QtCore.QEvent.MouseButtonPress):
             dlm = DownloadManagerFactory().GetInstance()
             vid = dlm.vids_[index.row()]
             if 'status' in vid:
@@ -217,11 +220,11 @@ class ThumbnailCache(object):
 
             try:
                 filename, headers = urllib.request.urlretrieve(image_url)
-                srcImage = QImage(filename)
+                srcImage = QtGui.QImage(filename)
             except:
                 print ('-- could not get',  image_url)
-                srcImage = QImage(self.ratio_*self.height_, self.height_, QImage.Format.Format_RGB32)
-                srcImage.fill(QColor(self.defaultBackground_))
+                srcImage = QtGui.QImage(self.ratio_*self.height_, self.height_, QtGui.QImage.Format.Format_RGB32)
+                srcImage.fill(QtGui.QColor(self.defaultBackground_))
 
             # column images
             if srcImage.height() > 4*srcImage.width():
@@ -231,21 +234,21 @@ class ThumbnailCache(object):
             ratio = 1.0*srcImage.width()/srcImage.height()
             if ratio > self.ratio_:
                 srcImage = srcImage.scaledToWidth(self.height_*self.ratio_)
-                destPos = QPoint(0, (self.height_-srcImage.height())//2)
+                destPos = QtCore.QPoint(0, (self.height_-srcImage.height())//2)
             else:
                 srcImage = srcImage.scaledToHeight(self.height_)
-                destPos = QPoint(int(self.ratio_*self.height_-srcImage.width())//2, 0)
-            destImage = QImage(self.ratio_*self.height_, self.height_, QImage.Format.Format_RGB32)
-            painter = QPainter(destImage)
-            painter.fillRect(painter.window (), QColor(self.defaultBackground_))
+                destPos = QtCore.QPoint(int(self.ratio_*self.height_-srcImage.width())//2, 0)
+            destImage = QtGui.QImage(self.ratio_*self.height_, self.height_, QtGui.QImage.Format.Format_RGB32)
+            painter = QtGui.QPainter(destImage)
+            painter.fillRect(painter.window (), QtGui.QColor(self.defaultBackground_))
             painter.drawImage(destPos, srcImage)
             painter.end()
 
             self.cache_[image_url] = destImage
         return self.cache_[image_url]
 
-class PlaylistItemDelegate(QItemDelegate):
-    queueVid = Signal(dict)
+class PlaylistItemDelegate(QtGui.QItemDelegate):
+    queueVid = QtCore.Signal(dict)
 
     def __init__(self, height=96, ratio=16./9):
         super(PlaylistItemDelegate, self).__init__()
@@ -274,23 +277,23 @@ class PlaylistItemDelegate(QItemDelegate):
             painter.drawText(option.rect.topLeft().x()+int(128+self.height_), option.rect.topLeft().y()+40, upload_date)
 
     def sizeHint(self, option, index):
-        return QSize(int(2*self.ratio_*self.height_), self.height_)
+        return QtCore.QSize(int(2*self.ratio_*self.height_), self.height_)
 
     def editorEvent(self, event, model, option, index):
-        if (event.type() == QEvent.MouseButtonPress):
+        if (event.type() == QtCore.QEvent.MouseButtonPress):
             self.queueVid.emit(index.data())
             return True
         return False
 
 
-class CacheWorker(QObject):
-    finished = Signal()
+class CacheWorker(QtCore.QObject):
+    finished = QtCore.Signal()
 
     def __init__(self, model):
         super(CacheWorker, self).__init__() 
         self.model_ = model
 
-    @Slot()
+    @QtCore.Slot()
     def doWork(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             future_to_url = dict((executor.submit(self.model_.populateCache, i), i)
@@ -305,7 +308,7 @@ class CacheWorker(QObject):
                                                                 future.exception()))
         self.finished.emit()
 
-class PlaylistModel(QAbstractListModel):
+class PlaylistModel(QtCore.QAbstractListModel):
     def __init__(self):
         super(PlaylistModel, self).__init__()
         self.downloader_ = YoutubeDL()
@@ -375,7 +378,7 @@ class PlaylistModel(QAbstractListModel):
                         self.vids_.append(result['vid'])
 
         self.worker_ = CacheWorker(self)
-        thread = QThread()
+        thread = QtCore.QThread()
         self.worker_.moveToThread(thread)
         thread.started.connect(self.worker_.doWork)
         self.worker_.finished.connect(thread.quit)
@@ -398,62 +401,62 @@ class PlaylistModel(QAbstractListModel):
         vid = self.vids_[index.row()]
         return vid
 
-class PlaylistView(QListView):
+class PlaylistView(QtGui.QListView):
     def __init__(self):
         super(PlaylistView, self).__init__()
         self.setItemDelegate(PlaylistItemDelegate())
 
     def sizeHint(self):
-        return QSize(256,800)
+        return QtCore.QSize(256,800)
 
 
-class SiteTable(QTableWidget):
-    requestBrowse = Signal(str)
+class SiteTable(QtGui.QTableWidget):
+    requestBrowse = QtCore.Signal(str)
 
     def __init__(self, extractors):
         super(SiteTable, self).__init__()
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
-        self.horizontalHeader().setResizeMode(QHeaderView.Fixed)
+        self.horizontalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
         self.horizontalHeader().setDefaultSectionSize(160)
-        self.verticalHeader().setResizeMode(QHeaderView.Fixed)
+        self.verticalHeader().setResizeMode(QtGui.QHeaderView.Fixed)
         self.verticalHeader().setDefaultSectionSize(64)
         cols = 2
         rows = m.ceil(1.0*len(extractors)/cols)
         self.setColumnCount(cols)
         self.setRowCount(rows)
         cache = ThumbnailCache(64, 1., defaultBackground='white')
-        self.setIconSize(QSize(100, 100))
+        self.setIconSize(QtCore.QSize(100, 100))
         for i in range(len(extractors)):
-            item = QTableWidgetItem()
+            item = QtGui.QTableWidgetItem()
             icon_url = extractors[i]._get_icon_url()
             image = cache(icon_url)
-            icon = QIcon(QPixmap.fromImage(image))
+            icon = QtGui.QIcon(QtGui.QPixmap.fromImage(image))
             item.setIcon(icon)
-            item.setSizeHint(QSize(100, 100))
+            item.setSizeHint(QtCore.QSize(100, 100))
             item.setText(extractors[i].IE_NAME)
             self.setItem (i/cols, i%cols, item)
         #connect(self, SIGNAL(cellClicked(int,int)), this, SLOT(previousWeek()));
         self.cellClicked.connect(self.onCellClick) 
 
-    @Slot(int, int)
+    @QtCore.Slot(int, int)
     def onCellClick(self, row, col):
         extractor_name = self.item(row, col).text()
         self.requestBrowse.emit(extractor_name)
 
     def sizeHint(self):
-        return QSize(256,800)
+        return QtCore.QSize(256,800)
 
 
-class MainWindow(QMainWindow):
-    @Slot()
+class MainWindow(QtGui.QMainWindow):
+    @QtCore.Slot()
     def onSearch(self):
         search_text = self.searchBar_.text()
         index = self.siteBar_.currentIndex()
         extractor_name = self.siteBar_.itemData(index)
         self.playlist_.update(search_text=search_text, extractor_name=extractor_name)
 
-    @Slot(str)
+    @QtCore.Slot(str)
     def onBrowse(self, extractor_name):
         self.playlist_.update(extractor_name)
 
@@ -463,22 +466,22 @@ class MainWindow(QMainWindow):
         extractors = extractor.gen_extractors()
         ydl = YoutubeDL()
         self.playlist_ = PlaylistModel()
-        panelWidget = QTabWidget()
-        searchWidget = QWidget()
-        searchLayout = QVBoxLayout()
-        siteLayout = QHBoxLayout()
-        self.siteBar_ = QComboBox()
-        siteLayout.addWidget(QLabel('site:'))
+        panelWidget = QtGui.QTabWidget()
+        searchWidget = QtGui.QWidget()
+        searchLayout = QtGui.QVBoxLayout()
+        siteLayout = QtGui.QHBoxLayout()
+        self.siteBar_ = QtGui.QComboBox()
+        siteLayout.addWidget(QtGui.QLabel('site:'))
         siteLayout.addWidget(self.siteBar_)
         self.siteBar_.addItem('All', None)
         for ext in extractors:
             self.siteBar_.addItem(ext.IE_NAME, ext.IE_NAME)
         siteLayout.addStretch()
         searchLayout.addLayout(siteLayout)
-        barLayout = QHBoxLayout()
-        self.searchBar_ = QLineEdit()
+        barLayout = QtGui.QHBoxLayout()
+        self.searchBar_ = QtGui.QLineEdit()
         barLayout.addWidget(self.searchBar_)
-        okButton = QPushButton('Ok')
+        okButton = QtGui.QPushButton('Ok')
         barLayout.addWidget(okButton)
         barLayout.addStretch()
         okButton.clicked.connect(self.onSearch)
@@ -486,7 +489,7 @@ class MainWindow(QMainWindow):
         searchLayout.addStretch()
         searchWidget.setLayout(searchLayout)
 
-        browseLayout = QVBoxLayout()
+        browseLayout = QtGui.QVBoxLayout()
 
         browseLayout.addStretch()
         browseWidget = SiteTable(extractors)
@@ -496,20 +499,40 @@ class MainWindow(QMainWindow):
         panelWidget.addTab(searchWidget, 'Search')
 
 
-        mainLayout = QHBoxLayout()
+        mainLayout = QtGui.QHBoxLayout()
         mainLayout.addWidget(panelWidget)
         searchView = PlaylistView()
         searchView.setModel(self.playlist_)
         mainLayout.addWidget(searchView)
-        mainWidget = QWidget()
+
+        if vlc_available:
+            videoLayout = QtGui.QVBoxLayout()
+            self.instance = vlc.Instance()
+            self.mediaplayer = self.instance.media_player_new()
+            # In this widget, the video will be drawn
+            if sys.platform == "darwin": # for MacOS
+                self.videoframe = QtGui.QMacCocoaViewContainer(0)
+            else:
+                self.videoframe = QtGui.QFrame()
+            self.palette = self.videoframe.palette()
+            self.palette.setColor (QtGui.QPalette.Window,
+                                QtGui.QColor(0,0,0))
+            self.videoframe.setPalette(self.palette)
+            self.videoframe.setAutoFillBackground(True)
+            videoLayout.addWidget(self.videoframe)
+            videoWidget = QtGui.QWidget()
+            videoWidget.setLayout(videoLayout)
+            mainLayout.addWidget(videoWidget)
+
+        mainWidget = QtGui.QWidget()
         mainWidget.setLayout(mainLayout)
         self.setCentralWidget(mainWidget)
 
-        dock = QDockWidget(self)
+        dock = QtGui.QDockWidget(self)
         #dock.setAllowedAreas(LeftDockWidgetArea | RightDockWidgetArea)
         downloadWidget = DownloadManagerView()
         dock.setWidget(downloadWidget)
-        self.addDockWidget(Qt.BottomDockWidgetArea, dock)
+        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, dock)
 
 if __name__ == '__main__':
     import maxitube
