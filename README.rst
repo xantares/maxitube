@@ -17,10 +17,12 @@ Run
 ::
     $ python -m maxitube
 
+
 Installation
 ------------
 ::
-    sudo python setup.py install
+    # python setup.py install
+
 
 Dependencies
 ------------
@@ -29,10 +31,10 @@ Dependencies
 * _youtube-dl
 * _whoosh (optional for accurate search results
 
-:: _Python: http://www.python.org/
-:: _PySide: http://wiki.qt.io/index.php?title=Pyside
-:: _youtube-dl: http://rg3.github.io/youtube-dl/
-:: _whoosh: https://pythonhosted.org/Whoosh/
+.. _Python: http://www.python.org/
+.. _PySide: http://wiki.qt.io/index.php?title=Pyside
+.. _youtube-dl: http://rg3.github.io/youtube-dl/
+.. _whoosh: https://pythonhosted.org/Whoosh/
 
 License
 -------
