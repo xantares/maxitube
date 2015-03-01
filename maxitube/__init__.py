@@ -1,7 +1,7 @@
 import sys
 import signal
 from PySide.QtGui import QApplication
-from maxitube.__main__ import MainWindow
+from .__main__ import MainWindow
 
 def _real_main(argv=None):
     signal.signal(signal.SIGINT, signal.SIG_DFL)
