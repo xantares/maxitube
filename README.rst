@@ -15,11 +15,13 @@ Supported sites
 Run
 ---
 .. code:: bash
+
     $ python -m maxitube
 
 Installation
 ------------
 .. code:: bash
+
     # python setup.py install
 
 
