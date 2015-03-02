@@ -128,6 +128,7 @@ class DownloadManager(QtCore.QAbstractTableModel):
     def update(self):
         simulateous_downloads = 0
         first_queued = None
+        first_index = None
         # FIXME iterate over self.vids_
         for index in range(self.rowCount()):
             vid = self.vids_[index]
@@ -137,8 +138,11 @@ class DownloadManager(QtCore.QAbstractTableModel):
             elif status == 'queued':
                 if not first_queued:
                     first_queued = vid
+                    first_index = index
 
         if first_queued and (simulateous_downloads < self._max_simulateous_downloads):
+            self.vids_[first_index]['status']='downloading'
+            self.dataChanged.emit(self.index(0, 0), self.index(self.rowCount()-1, self.columnCount()-1))
             self.worker_ = DownloadWorker(self, first_queued)
             self.worker_.finished.connect(self.update)
             thread = QtCore.QThread()
