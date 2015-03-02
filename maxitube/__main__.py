@@ -75,7 +75,9 @@ class DownloadManager(QtCore.QAbstractTableModel):
 
     @QtCore.Slot(str)
     def add(self, vid):
-        #print('--add',vid)
+        for vid2 in self.vids_:
+            if vid['url'] == vid2['url']:
+                return
         vid['status'] = 'queued'
         index = len(self.vids_)-1
         self.beginInsertRows(QtCore.QModelIndex(), index, index)
