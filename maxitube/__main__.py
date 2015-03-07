@@ -548,8 +548,6 @@ class PlayerWidget(QtGui.QWidget):
     def OpenFile(self, filename=None):
         """Open a media file in a MediaPlayer
         """
-        if filename is None:
-            filename = QtGui.QFileDialog.getOpenFileName(self, "Open File", user.home)
         if not filename:
             return
 
@@ -602,6 +600,7 @@ class MainWindow(QtGui.QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__()
+        self.setWindowTitle('maxitube')
         self.resize(1024, 768)
         extractors = extractor.gen_extractors()
         ydl = YoutubeDL()
