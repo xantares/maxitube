@@ -202,6 +202,7 @@ class DownloadManagerItemDelegate(QtGui.QItemDelegate):
                 status = vid['status']
                 filename = None
                 if status == 'finished':
+                    dlm.vids_[index.row()]['progress'] = '100%'
                     #filename = self.download_location_ + '/' + ('%05d' % self.downloader_._num_downloads)
                     filename = vid['filename']
                 elif status == 'downloading':
@@ -469,25 +470,79 @@ class PlayerWidget(QtGui.QWidget):
                                 QtGui.QColor(0,0,0))
             self.videoframe.setPalette(self.palette)
             self.videoframe.setAutoFillBackground(True)
-            videoLayout.addWidget(self.videoframe)
-            self.setLayout(videoLayout)
 
+            self.positionslider = QtGui.QSlider(QtCore.Qt.Horizontal, self)
+            self.positionslider.setToolTip("Position")
+            self.positionslider.setMaximum(1000)
+            self.positionslider.sliderMoved.connect(self.setPosition)
+
+            self.hbuttonbox = QtGui.QHBoxLayout()
+            self.playbutton = QtGui.QPushButton("Play")
+            self.hbuttonbox.addWidget(self.playbutton)
+            self.playbutton.clicked.connect(self.PlayPause)
+
+            self.stopbutton = QtGui.QPushButton("Stop")
+            self.hbuttonbox.addWidget(self.stopbutton)
+            self.stopbutton.clicked.connect(self.Stop)
+
+            self.hbuttonbox.addStretch(1)
+            self.volumeslider = QtGui.QSlider(QtCore.Qt.Horizontal, self)
+            self.volumeslider.setMaximum(100)
+            self.volumeslider.setValue(self.mediaplayer.audio_get_volume())
+            self.volumeslider.setToolTip("Volume")
+            self.hbuttonbox.addWidget(self.volumeslider)
+            self.volumeslider.valueChanged.connect(self.setVolume)
+
+
+            self.vboxlayout = QtGui.QVBoxLayout()
+            self.vboxlayout.addWidget(self.videoframe)
+            self.vboxlayout.addWidget(self.positionslider)
+            self.vboxlayout.addLayout(self.hbuttonbox)
+
+            self.setLayout(self.vboxlayout)
+
+    @QtCore.Slot(str)
     def PlayPause(self):
         """Toggle play/pause status
         """
         if vlc_available:
             if self.mediaplayer.is_playing():
                 self.mediaplayer.pause()
-                #self.playbutton.setText("Play")
+                self.playbutton.setText("Play")
                 self.isPaused = True
             else:
                 if self.mediaplayer.play() == -1:
                     self.OpenFile()
                     return
                 self.mediaplayer.play()
-                #self.playbutton.setText("Pause")
+                self.playbutton.setText("Pause")
                 #self.timer.start()
                 self.isPaused = False
+
+    @QtCore.Slot()
+    def Stop(self):
+        """Stop player
+        """
+        self.mediaplayer.stop()
+        self.playbutton.setText("Play")
+
+    @QtCore.Slot(int)
+    def setVolume(self, Volume):
+        """Set the volume
+        """
+        self.mediaplayer.audio_set_volume(Volume)
+
+    @QtCore.Slot(int)
+    def setPosition(self, position):
+        """Set the position
+        """
+        # setting the position to where the slider was dragged
+        self.mediaplayer.set_position(position / 1000.0)
+        # the vlc MediaPlayer needs a float value between 0 and 1, Qt
+        # uses integer variables, so you need a factor; the higher the
+        # factor, the more precise are the results
+        # (1000 should be enough)
+
 
     @QtCore.Slot(str)
     def OpenFile(self, filename=None):
@@ -514,7 +569,7 @@ class PlayerWidget(QtGui.QWidget):
             # this is platform specific!
             # you have to give the id of the QFrame (or similar object) to
             # vlc, different platforms have different functions for this
-            if sys.platform == "linux2": # for Linux using the X Server
+            if sys.platform.startswith('linux'): # for Linux using the X Server
                 self.mediaplayer.set_xwindow(self.videoframe.winId())
             elif sys.platform == "win32": # for Windows
                 self.mediaplayer.set_hwnd(self.videoframe.winId())
@@ -535,10 +590,15 @@ class MainWindow(QtGui.QMainWindow):
         index = self.siteBar_.currentIndex()
         extractor_name = self.siteBar_.itemData(index)
         self.playlist_.update(search_text=search_text, extractor_name=extractor_name)
+        self.showResults()
 
     @QtCore.Slot(str)
     def onBrowse(self, extractor_name):
         self.playlist_.update(extractor_name)
+        self.showResults()
+
+    def showResults(self):
+        self.panelWidget_.setCurrentIndex(2)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -546,7 +606,7 @@ class MainWindow(QtGui.QMainWindow):
         extractors = extractor.gen_extractors()
         ydl = YoutubeDL()
         self.playlist_ = PlaylistModel()
-        panelWidget = QtGui.QTabWidget()
+        self.panelWidget_ = QtGui.QTabWidget()
         searchWidget = QtGui.QWidget()
         searchLayout = QtGui.QVBoxLayout()
         siteLayout = QtGui.QHBoxLayout()
@@ -575,20 +635,24 @@ class MainWindow(QtGui.QMainWindow):
         browseWidget = SiteTable(extractors)
         browseWidget.requestBrowse.connect(self.onBrowse)
         browseWidget.setLayout(browseLayout)
-        panelWidget.addTab(browseWidget, 'Browse') 
-        panelWidget.addTab(searchWidget, 'Search')
 
 
-        mainLayout = QtGui.QHBoxLayout()
-        mainLayout.addWidget(panelWidget)
         searchView = PlaylistView()
         searchView.setModel(self.playlist_)
-        mainLayout.addWidget(searchView)
+
+        self.panelWidget_.addTab(browseWidget, 'Browse') 
+        self.panelWidget_.addTab(searchWidget, 'Search')
+        self.panelWidget_.addTab(searchView, 'Results')
 
         playerWidget = PlayerWidget()
         dlm = DownloadManagerFactory().GetInstance()
         dlm.playVid.connect(playerWidget.OpenFile)
+
+        mainLayout = QtGui.QHBoxLayout()
+        mainLayout.addWidget(self.panelWidget_)
         mainLayout.addWidget(playerWidget)
+
+        #mainLayout.addWidget(searchView)
 
         mainWidget = QtGui.QWidget()
         mainWidget.setLayout(mainLayout)
