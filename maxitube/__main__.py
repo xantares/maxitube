@@ -432,10 +432,10 @@ class SiteTable(QtGui.QTableWidget):
         self.setRowCount(rows)
         cache = ThumbnailCache(64, 1., defaultBackground='white')
         self.setIconSize(QtCore.QSize(100, 100))
+        settings = QtCore.QSettings('maxitube', 'maxitube')
         for i in range(len(extractors)):
             item = QtGui.QTableWidgetItem()
             icon_url = extractors[i]._get_icon_url()
-            settings = QtCore.QSettings('maxitube', 'maxitube')
             ext_name = extractors[i].IE_NAME
             key = 'icon_'+ext_name.lower()
             image = settings.value(key)
