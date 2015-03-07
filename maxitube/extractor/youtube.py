@@ -5,8 +5,17 @@ from youtube_dl.utils import unescapeHTML
 
 
 class YouTubeSE(HomepageSearchExtractor):
+
+    def __init__(self):
+        self.parse_page_counter = 0
+
     def parse_page(self, url):
         webpage = self._download_webpage(url, 'main')
+        # returns an incomplete page the first time
+        if self.parse_page_counter == 0:
+            webpage = self._download_webpage(url, 'main')
+        self.parse_page_counter += 1
+
         download_list_html = re.findall(r'<a href="/watch\?v=([^"]+)" class="[^"]+" data-sessionlink="[^"]+" title="([^"]+)"', webpage)
         result = []
         for expr in download_list_html:
