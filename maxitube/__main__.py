@@ -435,7 +435,13 @@ class SiteTable(QtGui.QTableWidget):
         for i in range(len(extractors)):
             item = QtGui.QTableWidgetItem()
             icon_url = extractors[i]._get_icon_url()
-            image = cache(icon_url)
+            settings = QtCore.QSettings('maxitube', 'maxitube')
+            ext_name = extractors[i].IE_NAME
+            key = 'icon_'+ext_name.lower()
+            image = settings.value(key)
+            if not image:
+                image = cache(icon_url)
+                settings.setValue(key, image)
             icon = QtGui.QIcon(QtGui.QPixmap.fromImage(image))
             item.setIcon(icon)
             item.setSizeHint(QtCore.QSize(100, 100))
