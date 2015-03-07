@@ -206,7 +206,7 @@ class DownloadManagerItemDelegate(QtGui.QItemDelegate):
                     #filename = self.download_location_ + '/' + ('%05d' % self.downloader_._num_downloads)
                     filename = vid['filename']
                 elif status == 'downloading':
-                    filename = vid['filename']
+                    filename = vid.get('filename')
                 if not filename is None:
                     dlm.playVid.emit(filename)
 
