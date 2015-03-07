@@ -6,6 +6,8 @@ Downloads videos instead of relying on non-free technology such as Adobe Flash a
 
 .. image:: snapshot1.png
 
+.. image:: snapshot2.png
+
 Supported sites
 ---------------
 * Youtube (https://www.youtube.com/)
