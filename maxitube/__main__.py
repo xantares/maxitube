@@ -12,6 +12,7 @@ import maxitube.extractor as extractor
 import urllib
 import tempfile
 import subprocess
+import shutil
 import os
 import signal
 import concurrent.futures
@@ -68,10 +69,17 @@ class DownloadManager(QtCore.QAbstractTableModel):
         self.vids_ = []
         self._max_simulateous_downloads = 1
         self.download_location_ = tempfile.gettempdir()+'/maxitube'
+
         self.downloader_.params['outtmpl'] = self.download_location_+'/%(autonumber)s'
         self.downloader_.params['noprogress'] = False
         #self.setHorizontalHeaderLabels(['name', "status", "progress", "file"])
         #self.requestUpdateLine.connect(self.updateLine)
+
+    def __del__(self):
+        try:
+            shutil.rmtree(self.download_location_)
+        except FileNotFoundError:
+           pass
 
     @QtCore.Slot(str)
     def add(self, vid):
@@ -91,7 +99,7 @@ class DownloadManager(QtCore.QAbstractTableModel):
         self.update()
 
     def columnCount(self, parent=QtCore.QModelIndex()):
-        return 4
+        return 5
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self.vids_)
@@ -108,7 +116,9 @@ class DownloadManager(QtCore.QAbstractTableModel):
                 data = vid['status']
             elif section == 2 and '_percent_str' in vid:
                 data = vid['_percent_str']
-            elif section == 3 and 'filename' in vid:
+            elif section == 3 and 'title' in vid:
+                data = vid['title']
+            elif section == 4 and 'filename' in vid:
                 data = vid['filename']
         return data
 
@@ -122,6 +132,8 @@ class DownloadManager(QtCore.QAbstractTableModel):
             elif section == 2:
                 data = 'Progress'
             elif section == 3:
+                data = 'Title'
+            elif section == 4:
                 data = 'File'
         return data
 
