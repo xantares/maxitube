@@ -30,10 +30,10 @@ except:
 
 try:
     import vlc
-    vlc_available = True
+    # disabled for now
+    vlc_available = False
 except:
     vlc_available = False
-
 
 class DownloadManagerFactory:
     instance_ = None
