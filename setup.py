@@ -15,26 +15,27 @@ except ImportError:
     from distutils.core import setup
     setuptools_available = False
 
-#try:
-    ## This will create an exe that needs Microsoft Visual C++ 2008
-    ## Redistributable Package
-    #import py2exe
-#except ImportError:
-    #if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
-        #print("Cannot import py2exe", file=sys.stderr)
-        #exit(1)
+try:
+    # This will create an exe that needs Microsoft Visual C++ 2008
+    # Redistributable Package
+    import py2exe
+except ImportError:
+    if len(sys.argv) >= 2 and sys.argv[1] == 'py2exe':
+        print("Cannot import py2exe", file=sys.stderr)
+        exit(1)
 
 py2exe_options = {
-    #"bundle_files": 1,
-    #"compressed": 1,
-    #"optimize": 2,
-    #"dist_dir": '.',
-    #"dll_excludes": ['w9xpopen.exe'],
+    "bundle_files": 3,
+    "compressed": 1,
+    "optimize": 2,
+    "dist_dir": '.',
+    "dll_excludes": ['w9xpopen.exe'],
+    'packages' : ['maxitube'],
 }
 
 py2exe_console = [{
-    #"script": "./youtube_dl/__main__.py",
-    #"dest_base": "youtube-dl",
+    "script": "./maxitube/__main__.py",
+    "dest_base": "maxitube",
 }]
 
 py2exe_params = {
@@ -53,7 +54,8 @@ else:
         #('share/man/man1', ['youtube-dl.1'])
     #]
     #root = os.path.dirname(os.path.abspath(__file__))
-    data_files = []
+    
+    data_files = [],
     #for dirname, files in files_spec:
         #resfiles = []
         #for fn in files:
