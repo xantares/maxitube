@@ -472,19 +472,14 @@ class PlayerWidget(QtGui.QWidget):
     def PlayPause(self):
         """Toggle play/pause status
         """
-        if vlc_available:
-            if self.mediaplayer.is_playing():
-                self.mediaplayer.pause()
-                self.playbutton.setText("Play")
-                self.isPaused = True
-            else:
-                if self.mediaplayer.play() == -1:
-                    self.OpenFile()
-                    return
-                self.mediaplayer.play()
-                self.playbutton.setText("Pause")
-                #self.timer.start()
-                self.isPaused = False
+
+        if self.mediaplayer.play() == -1:
+            self.OpenFile()
+            return
+        self.mediaplayer.play()
+        self.playbutton.setText("Pause")
+        #self.timer.start()
+        self.isPaused = False
 
     @QtCore.Slot()
     def Stop(self):
@@ -541,6 +536,18 @@ class MainWindow(QtGui.QMainWindow):
     def showResults(self):
         self.panelWidget_.setCurrentIndex(2)
 
+    @QtCore.Slot(str)
+    def onPlay(self, filename=None):
+        """Open a media file in a MediaPlayer
+        """
+        if not filename:
+            return
+
+        cmd_list = ['vlc', '--fullscreen', filename]
+        cmd_line = subprocess.list2cmdline(cmd_list)
+        print('-- run player:', cmd_line)
+        p = subprocess.Popen(cmd_list)
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle('maxitube')
@@ -586,13 +593,11 @@ class MainWindow(QtGui.QMainWindow):
         self.panelWidget_.addTab(searchWidget, 'Search')
         self.panelWidget_.addTab(searchView, 'Results')
 
-        playerWidget = PlayerWidget()
         dlm = DownloadManagerFactory().GetInstance()
-        dlm.playVid.connect(playerWidget.OpenFile)
+        dlm.playVid.connect(self.onPlay)
 
         mainLayout = QtGui.QHBoxLayout()
         mainLayout.addWidget(self.panelWidget_)
-        mainLayout.addWidget(playerWidget)
 
         #mainLayout.addWidget(searchView)
 
