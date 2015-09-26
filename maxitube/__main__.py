@@ -29,13 +29,6 @@ try:
 except:
     whoosh_available = False
 
-try:
-    import vlc
-    # disabled for now
-    vlc_available = False
-except:
-    vlc_available = False
-
 class DownloadManagerFactory:
     instance_ = None
 
@@ -474,50 +467,6 @@ class SiteTable(QtGui.QTableWidget):
 class PlayerWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         super(PlayerWidget, self).__init__(parent)
-        if vlc_available:
-            videoLayout = QtGui.QVBoxLayout()
-            self.instance = vlc.Instance()
-            self.mediaplayer = self.instance.media_player_new()
-            # In this widget, the video will be drawn
-            if sys.platform == "darwin": # for MacOS
-                self.videoframe = QtGui.QMacCocoaViewContainer(0)
-            else:
-                self.videoframe = QtGui.QFrame(self)
-            self.palette = self.videoframe.palette()
-            self.palette.setColor (QtGui.QPalette.Window,
-                                QtGui.QColor(0,0,0))
-            self.videoframe.setPalette(self.palette)
-            self.videoframe.setAutoFillBackground(True)
-
-            self.positionslider = QtGui.QSlider(QtCore.Qt.Horizontal, self)
-            self.positionslider.setToolTip("Position")
-            self.positionslider.setMaximum(1000)
-            self.positionslider.sliderMoved.connect(self.setPosition)
-
-            self.hbuttonbox = QtGui.QHBoxLayout()
-            self.playbutton = QtGui.QPushButton("Play")
-            self.hbuttonbox.addWidget(self.playbutton)
-            self.playbutton.clicked.connect(self.PlayPause)
-
-            self.stopbutton = QtGui.QPushButton("Stop")
-            self.hbuttonbox.addWidget(self.stopbutton)
-            self.stopbutton.clicked.connect(self.Stop)
-
-            self.hbuttonbox.addStretch(1)
-            self.volumeslider = QtGui.QSlider(QtCore.Qt.Horizontal, self)
-            self.volumeslider.setMaximum(100)
-            self.volumeslider.setValue(self.mediaplayer.audio_get_volume())
-            self.volumeslider.setToolTip("Volume")
-            self.hbuttonbox.addWidget(self.volumeslider)
-            self.volumeslider.valueChanged.connect(self.setVolume)
-
-
-            self.vboxlayout = QtGui.QVBoxLayout()
-            self.vboxlayout.addWidget(self.videoframe)
-            self.vboxlayout.addWidget(self.positionslider)
-            self.vboxlayout.addLayout(self.hbuttonbox)
-
-            self.setLayout(self.vboxlayout)
 
     @QtCore.Slot(str)
     def PlayPause(self):
@@ -569,34 +518,10 @@ class PlayerWidget(QtGui.QWidget):
         if not filename:
             return
 
-        if vlc_available:
-            # create the media
-            self.media = self.instance.media_new(filename)
-            # put the media in the media player
-            self.mediaplayer.set_media(self.media)
-
-            # parse the metadata of the file
-            self.media.parse()
-            # set the title of the track as window title
-            #self.setWindowTitle(self.media.get_meta(0))
-
-            # the media player has to be 'connected' to the QFrame
-            # (otherwise a video would be displayed in it's own window)
-            # this is platform specific!
-            # you have to give the id of the QFrame (or similar object) to
-            # vlc, different platforms have different functions for this
-            if sys.platform.startswith('linux'): # for Linux using the X Server
-                self.mediaplayer.set_xwindow(self.videoframe.winId())
-            elif sys.platform == "win32": # for Windows
-                self.mediaplayer.set_hwnd(self.videoframe.winId())
-            elif sys.platform == "darwin": # for MacOS
-                self.mediaplayer.set_nsobject(self.videoframe.winId())
-            self.PlayPause()
-        else:
-            cmd_list = ['vlc', '--fullscreen', filename]
-            cmd_line = subprocess.list2cmdline(cmd_list)
-            print('-- run player:', cmd_line)
-            p = subprocess.Popen(cmd_list)
+        cmd_list = ['vlc', '--fullscreen', filename]
+        cmd_line = subprocess.list2cmdline(cmd_list)
+        print('-- run player:', cmd_line)
+        p = subprocess.Popen(cmd_list)
 
 
 class MainWindow(QtGui.QMainWindow):
