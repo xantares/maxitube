@@ -489,7 +489,7 @@ class MainWindow(QtGui.QMainWindow):
 
         cmd_lists = [['vlc', '--fullscreen', filename]]
         if sys.platform.startswith('win'):
-            cmd_list.append(['C:\Program Files (x86)\Windows Media Player\wmplayer.exe', '/fullscreen', filename])
+            cmd_lists.append(['C:\Program Files (x86)\Windows Media Player\wmplayer.exe', '/fullscreen', filename])
         for cmd_list in cmd_lists:
             try:
                 cmd_line = subprocess.list2cmdline(cmd_list)
