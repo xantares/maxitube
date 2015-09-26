@@ -63,7 +63,7 @@ class DownloadManager(QtCore.QAbstractTableModel):
         self._max_simulateous_downloads = 1
         self.download_location_ = tempfile.gettempdir()+'/maxitube'
 
-        self.downloader_.params['outtmpl'] = self.download_location_+'/%(autonumber)s'
+        self.downloader_.params['outtmpl'] = self.download_location_+'/%(autonumber)s.%(ext)s'
         self.downloader_.params['noprogress'] = False
         #self.setHorizontalHeaderLabels(['name', "status", "progress", "file"])
         #self.requestUpdateLine.connect(self.updateLine)
@@ -166,7 +166,8 @@ class DownloadManager(QtCore.QAbstractTableModel):
         elif 'filename' in dl_infos:
             filename = dl_infos['filename']
         if filename:
-            index = int(os.path.splitext(os.path.basename(filename))[0])-1
+            basename = os.path.splitext(os.path.basename(filename))
+            index = int(basename[0])-1
             self.vids_[index]['filename'] = filename
             self.vids_[index]['status'] = dl_infos['status']
             if '_percent_str' in dl_infos:
