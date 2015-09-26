@@ -166,8 +166,8 @@ class DownloadManager(QtCore.QAbstractTableModel):
         elif 'filename' in dl_infos:
             filename = dl_infos['filename']
         if filename:
-            basename = os.path.splitext(os.path.basename(filename))
-            index = int(basename[0])-1
+            basename_we = os.path.basename(filename).split('.')[0]
+            index = int(basename_we)-1
             self.vids_[index]['filename'] = filename
             self.vids_[index]['status'] = dl_infos['status']
             if '_percent_str' in dl_infos:
