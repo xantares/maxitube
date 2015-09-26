@@ -10,4 +10,4 @@ class GrolandSE(CanalPlusSE):
         return self.parse_page(url)
 
     def _get_icon_url(self):
-        return 'http://imgcocktail.pole-esg.net/Extranet_dabovi_c08_made-in-groland.jpg'
+        return 'https://upload.wikimedia.org/wikipedia/fr/3/36/Made_in_Groland_2012_logo.png'

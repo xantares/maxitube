@@ -30,4 +30,4 @@ class GoldenMoustacheSE(HomepageSearchExtractor):
         return self.parse_page(url)
 
     def _get_icon_url(self):
-        return 'https://pbs.twimg.com/profile_images/463330574099156992/rspeNrqx_400x400.png'
+        return 'http://press.dailymotion.com/fr/wp-content/uploads/sites/4/2015/02/photo-e1424804371807.png'
