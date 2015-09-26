@@ -463,62 +463,6 @@ class SiteTable(QtGui.QTableWidget):
     def sizeHint(self):
         return QtCore.QSize(256,800)
 
-
-class PlayerWidget(QtGui.QWidget):
-    def __init__(self, parent=None):
-        super(PlayerWidget, self).__init__(parent)
-
-    @QtCore.Slot(str)
-    def PlayPause(self):
-        """Toggle play/pause status
-        """
-
-        if self.mediaplayer.play() == -1:
-            self.OpenFile()
-            return
-        self.mediaplayer.play()
-        self.playbutton.setText("Pause")
-        #self.timer.start()
-        self.isPaused = False
-
-    @QtCore.Slot()
-    def Stop(self):
-        """Stop player
-        """
-        self.mediaplayer.stop()
-        self.playbutton.setText("Play")
-
-    @QtCore.Slot(int)
-    def setVolume(self, Volume):
-        """Set the volume
-        """
-        self.mediaplayer.audio_set_volume(Volume)
-
-    @QtCore.Slot(int)
-    def setPosition(self, position):
-        """Set the position
-        """
-        # setting the position to where the slider was dragged
-        self.mediaplayer.set_position(position / 1000.0)
-        # the vlc MediaPlayer needs a float value between 0 and 1, Qt
-        # uses integer variables, so you need a factor; the higher the
-        # factor, the more precise are the results
-        # (1000 should be enough)
-
-
-    @QtCore.Slot(str)
-    def OpenFile(self, filename=None):
-        """Open a media file in a MediaPlayer
-        """
-        if not filename:
-            return
-
-        cmd_list = ['vlc', '--fullscreen', filename]
-        cmd_line = subprocess.list2cmdline(cmd_list)
-        print('-- run player:', cmd_line)
-        p = subprocess.Popen(cmd_list)
-
-
 class MainWindow(QtGui.QMainWindow):
     @QtCore.Slot()
     def onSearch(self):
