@@ -12,7 +12,7 @@ class CanalPlusSE(HomepageSearchExtractor):
         result = []
         for expr in download_list_html:
             infos = {}
-            infos['url'] = expr[0]
+            infos['url'] = 'http://www.canalplus.fr' + expr[0]
             infos['title'] = unescapeHTML(expr[2])
             infos['thumbnail'] = expr[1]
             if len(expr)>3 and len(expr[3])>0:
